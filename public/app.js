@@ -50,9 +50,10 @@ async function loadUserBar(){
   }catch(e){}
 }
 
-/* ---- Easter egg: type יששכרוב anywhere to see the exclusionary rule in action ---- */
+/* ---- Easter egg: type אסף אלוני / קונובסקי / נטשה anywhere to see the exclusionary rule in action ---- */
 function setupEasterEgg(){
-  const trigger="יששכרוב";
+  const triggers=["אסף אלוני","קונובסקי","נטשה"];
+  const maxLen=Math.max(...triggers.map(t=>t.length));
   let buf="", cooldown=false;
   const style=document.createElement("style");
   style.textContent=`
@@ -82,16 +83,16 @@ function setupEasterEgg(){
       overlay.appendChild(d);
     }
     const msg=document.createElement("div"); msg.className="egg-msg";
-    msg.innerHTML=`פסול קבילות! 🔨<br><span style="font-size:.85rem;font-weight:600;color:var(--ink)">כמו בהלכת יששכרוב — גם הבחינה הזו תיפסל... מלהיות בעיה בשבילך.<br>בהצלחה, אסף מאמין בך 💛</span>`;
+    msg.innerHTML=`פסול קבילות! 🔨<br><span style="font-size:.85rem;font-weight:600;color:var(--ink)">כמו בהלכת יששכרוב — גם הבחינה הזו תיפסל... מלהיות בעיה בשבילך.<br>בהצלחה, אסף מאמין בך 💛<br>יאללה חברים עוד שני מבחנים וסיימנו אינעל העולם</span>`;
     document.body.appendChild(msg);
-    setTimeout(()=>{overlay.remove();msg.remove();},4200);
-    setTimeout(()=>{cooldown=false;},6000);
+    setTimeout(()=>{overlay.remove();msg.remove();},9000);
+    setTimeout(()=>{cooldown=false;},11000);
   }
 
   document.addEventListener("keydown",(e)=>{
     if(e.key && e.key.length===1){
-      buf=(buf+e.key).slice(-trigger.length);
-      if(buf===trigger)fire();
+      buf=(buf+e.key).slice(-maxLen);
+      if(triggers.some(t=>buf.endsWith(t)))fire();
     }
   });
 }
