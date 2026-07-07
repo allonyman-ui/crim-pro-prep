@@ -10,8 +10,13 @@ const progressRoutes = require("./routes/progress");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_PROD = process.env.NODE_ENV === "production";
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
+if (IS_PROD && !process.env.SESSION_SECRET) {
+  console.warn("WARNING: SESSION_SECRET not set — sessions will reset on every restart/deploy.");
+}
 
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(
   cookieSession({
@@ -20,6 +25,7 @@ app.use(
     maxAge: 90 * 24 * 60 * 60 * 1000,
     httpOnly: true,
     sameSite: "lax",
+    secure: IS_PROD,
   })
 );
 
