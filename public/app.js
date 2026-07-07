@@ -106,7 +106,15 @@ const TABS = [
   {id:"quiz",   label:"מבחן אמריקאי",      icon:"✅"},
   {id:"sim",    label:"סימולציות",         icon:"📝"},
   {id:"exam",   label:"פרטי הבחינה",       icon:"📋"},
+  {id:"podcasts", label:"פודקאסטים",       icon:"🎧"},
   {id:"leaderboard", label:"לוח מובילים",  icon:"🏆"}
+];
+const PODCASTS = [
+  {file:"exam-crack-tamir-reifman-zguri.m4a", title:"פיצוח בחינת הסד\"פ של טמיר ורייפמן זגורי", desc:"ניתוח מעמיק של סגנון השאלות והציפיות של המרצה ועו\"ד זגורי בבחינה."},
+  {file:"exam-crack-michal-tamir.m4a", title:"פיצוח המבחן של מיכל טמיר בסד\"פ", desc:"פירוק שיטתי של מבנה המבחן ואיך לגשת לכל חלק בו."},
+  {file:"winning-strategy-exam.m4a", title:"אסטרטגיה מנצחת למבחן בסדר דין פלילי", desc:"טיפים אסטרטגיים לניהול הזמן וסדר הכתיבה בבחינה."},
+  {file:"suspects-rights-vs-evidence.m4a", title:"מתי זכויות חשודים גוברות על הראיות", desc:"דיון על האיזון בין זכויות הנחקר לבין קבילות הראיות שהושגו."},
+  {file:"internal-logic-arrest-law.m4a", title:"ההיגיון הפנימי של דיני המעצרים בישראל", desc:"הרציונל שמאחורי מדרג המעצרים והביקורת השיפוטית עליו."}
 ];
 let current = "home";
 
@@ -130,7 +138,7 @@ function render(){
   const app=$("#app"); app.innerHTML="";
   ({home:renderHome,study:renderStudy,cases:renderCases,flows:renderFlows,
     cards:renderCards,quiz:renderQuiz,sim:renderSim,exam:renderExam,
-    leaderboard:renderLeaderboard})[current]();
+    podcasts:renderPodcasts,leaderboard:renderLeaderboard})[current]();
 }
 
 /* ================= HOME ================= */
@@ -495,6 +503,28 @@ function renderExam(){
 
   const note=el("div","exam");
   note.innerHTML=`יישום מדויק על עובדות המקרה שווה יותר מציטוט הלכות ארוכות. <b>בהצלחה בבחינה!</b>`;
+  app.appendChild(note);
+}
+
+/* ================= PODCASTS ================= */
+function renderPodcasts(){
+  const app=$("#app");
+  app.appendChild(el("h2",null,"פודקאסטים לדרך"));
+  app.appendChild(el("p","lead","פרקים שהפקתי על הבחינה ועל סדר הדין הפלילי — להאזנה ישירה או להורדה למכשיר שלכם."));
+  PODCASTS.forEach(p=>{
+    const c=el("div","card");
+    const src="/media/podcasts/"+encodeURIComponent(p.file);
+    c.innerHTML=`
+      <div class="tt" style="font-weight:800;color:var(--navy);font-family:'Frank Ruhl Libre',serif;font-size:1.05rem">🎧 ${p.title}</div>
+      <div class="td" style="color:var(--muted);font-size:.88rem;margin:6px 0 12px">${p.desc}</div>
+      <audio controls preload="none" style="width:100%" src="${src}"></audio>
+      <div style="margin-top:10px">
+        <a class="btn ghost sm" href="${src}" download style="text-decoration:none;display:inline-block">⬇️ הורדה</a>
+      </div>`;
+    app.appendChild(c);
+  });
+  const note=el("div","note");
+  note.innerHTML=`<b>💡 טיפ:</b> אפשר להוריד את הפרקים ולהאזין גם במצב לא מקוון, בנסיעה או תוך כדי אימון.`;
   app.appendChild(note);
 }
 

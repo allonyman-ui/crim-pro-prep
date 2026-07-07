@@ -31,11 +31,10 @@ app.use(
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 
-// Public assets that don't require auth (login/register pages + their needs)
+// Public assets that don't require auth (login/register pages only)
 app.get(["/login.html", "/register.html"], (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, req.path));
 });
-app.use(express.static(PUBLIC_DIR, { index: false }));
 
 // Auth API (login/register themselves are public)
 app.use("/api/auth", authRoutes);
@@ -46,12 +45,12 @@ app.use(requireAuth);
 app.get("/", (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "index.html"));
 });
-app.get("/index.html", (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
-});
 app.get("/admin.html", requireAdmin, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "admin.html"));
 });
+
+// Everything else in public/ (app.js, data.js, index.html, media/*) requires the session above
+app.use(express.static(PUBLIC_DIR, { index: false }));
 
 app.use("/api/progress", progressRoutes);
 app.use("/api/admin", requireAdmin, adminRoutes);
