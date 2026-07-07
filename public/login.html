@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>התחברות · סדר דין פלילי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@700;900&family=Heebo:wght@400;500;700;900&family=Rubik:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#17233d; --navy:#0f1e38; --navy2:#1a2e4c; --navy3:#25406a; --paper:#e5e9f0; --card:#FFFFFF;
+  --line:#dce2ec; --muted:#5a6a85; --stamp:#c0392b;
+  --gold:#8a6d1a; --gold-bright:#d3a73e; --gold-2:#c1902f; --gold-bg:#f8edd8; --goldln:#ecd9a8;
+  --blue:#305686;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(155deg,var(--navy),var(--navy2) 60%,var(--navy3));color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{background:var(--card);border-radius:18px;padding:34px 32px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.brand-logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--gold-bright),var(--gold-2));display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.brand-title{font-family:'Rubik',sans-serif;font-weight:700;font-size:1.15rem;color:var(--navy)}
+.brand-sub{font-size:.75rem;color:var(--gold);margin-top:2px}
+h1{font-family:'Frank Ruhl Libre',serif;font-size:1.35rem;color:var(--navy);margin-bottom:6px}
+p.lead{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+label{display:block;font-size:.85rem;font-weight:700;color:var(--navy2);margin:14px 0 6px}
+input{width:100%;padding:12px 14px;border:2px solid var(--line);border-radius:10px;font-family:'Heebo';font-size:1rem}
+input:focus{outline:none;border-color:var(--blue)}
+button{width:100%;margin-top:22px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Heebo';font-weight:700;font-size:1rem;cursor:pointer;transition:.15s}
+button:hover{background:var(--navy3)}
+.err{background:#fbe9e8;border:1px solid var(--stamp);color:var(--stamp);border-radius:10px;padding:10px 14px;font-size:.88rem;margin-top:14px;display:none}
+.err.show{display:block}
+.foot{text-align:center;color:var(--muted);font-size:.78rem;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="brand">
+    <div class="brand-logo">⚖️</div>
+    <div>
+      <div class="brand-title">סדר דין פלילי</div>
+      <div class="brand-sub">אפליקציית לימוד · פרופ' טמיר</div>
+    </div>
+  </div>
+  <h1>התחברות</h1>
+  <p class="lead">הכניסה לאפליקציה היא בהזמנה בלבד. אם קיבלת קישור הזמנה, פתחו אותו כדי ליצור חשבון.</p>
+  <form id="loginForm">
+    <label for="email">אימייל</label>
+    <input type="email" id="email" required autocomplete="username">
+    <label for="password">סיסמה</label>
+    <input type="password" id="password" required autocomplete="current-password">
+    <div class="err" id="err"></div>
+    <button type="submit">התחברות</button>
+  </form>
+  <div class="foot">אין לך חשבון? יש לפנות למנהל האפליקציה לקבלת קישור הזמנה.</div>
+</div>
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const errBox = document.getElementById("err");
+  errBox.classList.remove("show");
+  try{
+    const res = await fetch("/api/auth/login", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({email, password})
+    });
+    const data = await res.json();
+    if(!res.ok){
+      errBox.textContent = data.error==="invalid_credentials" ? "אימייל או סיסמה שגויים." : "שגיאה בהתחברות.";
+      errBox.classList.add("show");
+      return;
+    }
+    window.location.href = data.isAdmin ? "/admin.html" : "/index.html";
+  }catch(err){
+    errBox.textContent = "שגיאת רשת. נסו שוב.";
+    errBox.classList.add("show");
+  }
+});
+</script>
+</body>
+</html>

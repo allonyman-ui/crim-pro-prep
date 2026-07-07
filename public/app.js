@@ -3,10 +3,52 @@
 "use strict";
 const $ = s => document.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;};
+const SYNCED_KEYS = ["cardsSeen","quizStats","chaptersOpened","lasttab"];
+let syncTimer=null;
+function scheduleSync(){
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>{
+    fetch("/api/progress/me",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        cardsSeen: store.get("cardsSeen",[]),
+        quizStats: store.get("quizStats",{answered:0,correct:0}),
+        chaptersOpened: store.get("chaptersOpened",[]),
+        lastTab: store.get("lasttab","home")
+      })
+    }).catch(()=>{});
+  },600);
+}
 const store = {
   get(k,d){try{return JSON.parse(localStorage.getItem('sdp_'+k))??d;}catch(e){return d;}},
-  set(k,v){try{localStorage.setItem('sdp_'+k,JSON.stringify(v));}catch(e){}}
+  set(k,v){try{localStorage.setItem('sdp_'+k,JSON.stringify(v));}catch(e){}
+    if(SYNCED_KEYS.includes(k))scheduleSync();}
 };
+async function hydrateFromServer(){
+  try{
+    const res=await fetch("/api/progress/me");
+    if(!res.ok)return;
+    const p=await res.json();
+    store.set("cardsSeen",p.cardsSeen||[]);
+    store.set("quizStats",p.quizStats||{answered:0,correct:0});
+    store.set("chaptersOpened",p.chaptersOpened||[]);
+  }catch(e){}
+}
+async function loadUserBar(){
+  try{
+    const res=await fetch("/api/auth/me");
+    if(!res.ok)return;
+    const {user}=await res.json();
+    const bar=$("#userBar");
+    if(bar){
+      bar.innerHTML=`<span>שלום, <b style="color:var(--navy)">${user.first_name}</b></span>
+        ${user.is_admin?'<a href="/admin.html" style="color:var(--blue);font-weight:700;text-decoration:none">⚙️ ניהול</a>':''}
+        <button id="logoutBtn" style="background:none;border:1.5px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:Heebo;color:var(--muted);font-weight:600">התנתקות</button>`;
+      const lb=$("#logoutBtn");
+      if(lb)lb.onclick=async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.href="/login.html";};
+    }
+  }catch(e){}
+}
 
 /* ---- Tabs ---- */
 const TABS = [
@@ -17,7 +59,8 @@ const TABS = [
   {id:"cards",  label:"כרטיסיות",          icon:"🃏"},
   {id:"quiz",   label:"מבחן אמריקאי",      icon:"✅"},
   {id:"sim",    label:"סימולציות",         icon:"📝"},
-  {id:"exam",   label:"פרטי הבחינה",       icon:"📋"}
+  {id:"exam",   label:"פרטי הבחינה",       icon:"📋"},
+  {id:"leaderboard", label:"לוח מובילים",  icon:"🏆"}
 ];
 let current = "home";
 
@@ -40,7 +83,8 @@ function go(id){
 function render(){
   const app=$("#app"); app.innerHTML="";
   ({home:renderHome,study:renderStudy,cases:renderCases,flows:renderFlows,
-    cards:renderCards,quiz:renderQuiz,sim:renderSim,exam:renderExam})[current]();
+    cards:renderCards,quiz:renderQuiz,sim:renderSim,exam:renderExam,
+    leaderboard:renderLeaderboard})[current]();
 }
 
 /* ================= HOME ================= */
@@ -110,6 +154,11 @@ function renderStudy(){
     if(i===0)d.open=false;
     d.innerHTML=`<summary><span class="secmark">${ch.n}</span><span>${ch.icon} ${ch.title}</span><span class="arw">▼</span></summary>
       <div class="dcontent">${ch.body}</div>`;
+    d.addEventListener("toggle",()=>{
+      if(!d.open)return;
+      const opened=store.get("chaptersOpened",[]);
+      if(!opened.includes(i)){opened.push(i);store.set("chaptersOpened",opened);}
+    });
     wrap.appendChild(d);
   });
   app.appendChild(wrap);
@@ -402,9 +451,43 @@ function renderExam(){
   app.appendChild(note);
 }
 
+/* ================= LEADERBOARD ================= */
+function renderLeaderboard(){
+  const app=$("#app");
+  app.appendChild(el("h2",null,"לוח מובילים"));
+  app.appendChild(el("p","lead","דירוג לפי אחוז ההתקדמות בחומר (כרטיסיות + שאלות שנענו). מוצג שם פרטי בלבד."));
+  const list=el("div"); list.id="lbList"; list.innerHTML=`<div class="card">טוען…</div>`;
+  app.appendChild(list);
+  fetch("/api/progress/leaderboard").then(r=>r.json()).then(({leaderboard})=>{
+    if(!leaderboard || !leaderboard.length){list.innerHTML=`<div class="card">אין עדיין נתוני התקדמות להצגה.</div>`;return;}
+    list.innerHTML="";
+    leaderboard.forEach((u,i)=>{
+      const medal=["🥇","🥈","🥉"][i]||`#${i+1}`;
+      const c=el("div","card");
+      c.style.display="flex";c.style.alignItems="center";c.style.gap="14px";
+      c.style.borderInlineStart=u.isMe?"5px solid var(--gold-bright)":"5px solid transparent";
+      const badges=(u.achievements||[]).map(a=>`<span title="${a.label}" style="margin-inline-end:4px">${a.icon}</span>`).join("");
+      c.innerHTML=`
+        <div style="font-size:1.3rem;min-width:34px;text-align:center">${medal}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;color:var(--navy);font-family:'Frank Ruhl Libre',serif">${u.firstName}${u.isMe?' <span style="color:var(--gold);font-size:.8rem">(את/ה)</span>':''}</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:2px">דיוק במבחנים: ${u.quizAccuracy}%${u.streak?` · רצף ${u.streak} ימים 🔥`:''}</div>
+          <div style="margin-top:6px">${badges}</div>
+        </div>
+        <div style="text-align:center;min-width:70px">
+          <div style="font-weight:900;font-size:1.3rem;color:var(--blue);font-family:'Frank Ruhl Libre',serif">${u.progressPct}%</div>
+          <div style="font-size:.7rem;color:var(--muted)">התקדמות</div>
+        </div>`;
+      list.appendChild(c);
+    });
+  }).catch(()=>{list.innerHTML=`<div class="card">שגיאה בטעינת לוח המובילים.</div>`;});
+}
+
 /* ---- init ---- */
 current = store.get("lasttab","home");
 if(!TABS.find(t=>t.id===current))current="home";
 buildNav();
 render();
+loadUserBar();
+hydrateFromServer().then(()=>{ if(current==="home")render(); });
 })();

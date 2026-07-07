@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>הרשמה · סדר דין פלילי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@700;900&family=Heebo:wght@400;500;700;900&family=Rubik:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#17233d; --navy:#0f1e38; --navy2:#1a2e4c; --navy3:#25406a; --paper:#e5e9f0; --card:#FFFFFF;
+  --line:#dce2ec; --muted:#5a6a85; --stamp:#c0392b;
+  --gold:#8a6d1a; --gold-bright:#d3a73e; --gold-2:#c1902f; --gold-bg:#f8edd8; --goldln:#ecd9a8;
+  --blue:#305686;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(155deg,var(--navy),var(--navy2) 60%,var(--navy3));color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{background:var(--card);border-radius:18px;padding:34px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.brand-logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--gold-bright),var(--gold-2));display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.brand-title{font-family:'Rubik',sans-serif;font-weight:700;font-size:1.15rem;color:var(--navy)}
+.brand-sub{font-size:.75rem;color:var(--gold);margin-top:2px}
+h1{font-family:'Frank Ruhl Libre',serif;font-size:1.35rem;color:var(--navy);margin-bottom:6px}
+p.lead{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+.row{display:flex;gap:10px}
+.row > div{flex:1}
+label{display:block;font-size:.85rem;font-weight:700;color:var(--navy2);margin:14px 0 6px}
+input{width:100%;padding:12px 14px;border:2px solid var(--line);border-radius:10px;font-family:'Heebo';font-size:1rem}
+input:focus{outline:none;border-color:var(--blue)}
+button{width:100%;margin-top:22px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Heebo';font-weight:700;font-size:1rem;cursor:pointer;transition:.15s}
+button:hover{background:var(--navy3)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.err{background:#fbe9e8;border:1px solid var(--stamp);color:var(--stamp);border-radius:10px;padding:10px 14px;font-size:.88rem;margin-top:14px;display:none}
+.err.show{display:block}
+.note{background:var(--gold-bg);border:1px solid var(--goldln);border-radius:10px;padding:12px 15px;font-size:.85rem;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="brand">
+    <div class="brand-logo">⚖️</div>
+    <div>
+      <div class="brand-title">סדר דין פלילי</div>
+      <div class="brand-sub">אפליקציית לימוד · פרופ' טמיר</div>
+    </div>
+  </div>
+  <div id="inviteCheck">
+    <p class="lead">בודקים את קישור ההזמנה…</p>
+  </div>
+  <form id="regForm" style="display:none">
+    <h1>יצירת חשבון</h1>
+    <p class="lead">קיבלת הזמנה להצטרף לאפליקציית הלימוד. מלאו את הפרטים כדי להתחיל.</p>
+    <div class="row">
+      <div><label for="firstName">שם פרטי</label><input type="text" id="firstName" required></div>
+      <div><label for="lastName">שם משפחה</label><input type="text" id="lastName" required></div>
+    </div>
+    <label for="email">אימייל</label>
+    <input type="email" id="email" required autocomplete="username">
+    <label for="password">סיסמה (לפחות 6 תווים)</label>
+    <input type="password" id="password" required minlength="6" autocomplete="new-password">
+    <div class="note">השם הפרטי שלך יוצג בלוח המובילים ובהישגים משותפים עם שאר הלומדים.</div>
+    <div class="err" id="err"></div>
+    <button type="submit" id="submitBtn">יצירת חשבון והתחברות</button>
+  </form>
+</div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const token = params.get("token");
+const checkBox = document.getElementById("inviteCheck");
+const form = document.getElementById("regForm");
+
+(async ()=>{
+  if(!token){
+    checkBox.innerHTML = '<p class="lead">קישור לא תקין. יש לבקש קישור הזמנה חדש ממנהל האפליקציה.</p>';
+    return;
+  }
+  try{
+    const res = await fetch("/api/auth/invite/" + encodeURIComponent(token));
+    const data = await res.json();
+    if(!res.ok){
+      checkBox.innerHTML = data.error==="invite_used"
+        ? '<p class="lead">קישור ההזמנה הזה כבר נוצל. יש לבקש קישור חדש.</p>'
+        : '<p class="lead">קישור ההזמנה אינו תקין או שפג תוקפו.</p>';
+      return;
+    }
+    checkBox.style.display = "none";
+    form.style.display = "block";
+  }catch(e){
+    checkBox.innerHTML = '<p class="lead">שגיאת רשת. נסו לרענן את הדף.</p>';
+  }
+})();
+
+form.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const submitBtn = document.getElementById("submitBtn");
+  const errBox = document.getElementById("err");
+  errBox.classList.remove("show");
+  submitBtn.disabled = true;
+  try{
+    const res = await fetch("/api/auth/register", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        token,
+        firstName: document.getElementById("firstName").value.trim(),
+        lastName: document.getElementById("lastName").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value
+      })
+    });
+    const data = await res.json();
+    if(!res.ok){
+      const map = {
+        email_taken: "כתובת האימייל כבר רשומה במערכת.",
+        weak_password: "הסיסמה קצרה מדי (לפחות 6 תווים).",
+        invite_used: "קישור ההזמנה כבר נוצל.",
+        invite_not_found: "קישור ההזמנה אינו תקין."
+      };
+      errBox.textContent = map[data.error] || "שגיאה ביצירת החשבון.";
+      errBox.classList.add("show");
+      submitBtn.disabled = false;
+      return;
+    }
+    window.location.href = "/index.html";
+  }catch(err){
+    errBox.textContent = "שגיאת רשת. נסו שוב.";
+    errBox.classList.add("show");
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

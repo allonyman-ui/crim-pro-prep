@@ -191,15 +191,18 @@ mark{background:#fde68a;padding:0 2px;border-radius:3px}
       </div>
     </div>
     <nav class="side-nav" id="nav"></nav>
-    <div class="side-foot">
+    <div class="side-foot" id="sideFoot">
       פרופ' מיכל טמיר · עו"ד ורד רייפמן זגורי<br>הופק ע"י אסף אלוני בסיוע Claude
     </div>
   </aside>
   <main class="main">
-    <div class="main-head"><div class="main-title" id="mainTitle">בית</div></div>
+    <div class="main-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div class="main-title" id="mainTitle">בית</div>
+      <div id="userBar" style="display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--muted)"></div>
+    </div>
     <div class="wrap" id="app"></div>
     <footer class="wrap" style="margin-top:30px">
-      <p>אפליקציית לימוד עצמית · אינה תחליף לחומרי הקורס הרשמיים · הנתונים נשמרים במכשיר שלך בלבד</p>
+      <p>אפליקציית לימוד עצמית · אינה תחליף לחומרי הקורס הרשמיים</p>
       <p style="margin-top:6px"><button class="toplink" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ חזרה למעלה</button></p>
     </footer>
   </main>

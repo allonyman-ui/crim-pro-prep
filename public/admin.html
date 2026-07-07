@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ניהול · סדר דין פלילי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@700;900&family=Heebo:wght@400;500;700;900&family=Rubik:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#17233d; --navy:#0f1e38; --navy2:#1a2e4c; --navy3:#25406a; --paper:#e5e9f0; --card:#FFFFFF;
+  --line:#dce2ec; --muted:#5a6a85; --stamp:#c0392b; --ok:#1f9d6b; --okbg:#e7f6ef;
+  --gold:#8a6d1a; --gold-bright:#d3a73e; --gold-2:#c1902f; --gold-bg:#f8edd8; --goldln:#ecd9a8;
+  --blue:#305686; --blue-bg:#e8eff9;
+  --sidebar:#0f1e38; --sidebar-text:#c3cee0; --sidebar-active:#1e3557;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Heebo',sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
+.topbar{background:var(--sidebar);color:#fff;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--gold-bright),var(--gold-2));display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.brand-title{font-family:'Rubik',sans-serif;font-weight:700;font-size:1.02rem}
+.brand-sub{font-size:.68rem;color:var(--gold-bright)}
+.topbar a, .topbar button{color:#c3cee0;text-decoration:none;font-size:.88rem;font-weight:600;background:none;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:'Heebo'}
+.topbar a:hover, .topbar button:hover{color:#fff;border-color:#fff}
+.wrap{max-width:1100px;margin:0 auto;padding:26px 24px 60px}
+h1{font-family:'Frank Ruhl Libre',serif;font-size:1.5rem;color:var(--navy);margin-bottom:4px}
+h2{font-family:'Frank Ruhl Libre',serif;font-size:1.15rem;color:var(--navy2);margin:26px 0 10px}
+.lead{color:var(--muted);margin-bottom:18px;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,35,59,.04)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:6px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.stat .n{font-family:'Frank Ruhl Libre',serif;font-weight:900;font-size:1.6rem;color:var(--blue)}
+.stat .l{font-size:.78rem;color:var(--muted);margin-top:3px;font-weight:600}
+.inviteRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=text]{padding:11px 13px;border:2px solid var(--line);border-radius:10px;font-family:'Heebo';font-size:.92rem;flex:1;min-width:180px}
+button.btn{background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-family:'Heebo';font-weight:700;font-size:.9rem;cursor:pointer}
+button.btn:hover{background:var(--navy3)}
+button.btn.danger{background:var(--stamp)}
+button.btn.danger:hover{background:#96271f}
+button.btn.sm{padding:7px 12px;font-size:.8rem}
+table{width:100%;border-collapse:collapse;font-size:.87rem}
+th{background:var(--navy);color:#fff;padding:9px 10px;text-align:right;font-weight:700}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:nth-child(even) td{background:#f7f9fc}
+.tbl-wrap{overflow-x:auto}
+.pill{display:inline-block;background:var(--blue-bg);color:var(--blue);font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:20px}
+.pill.admin{background:var(--gold-bg);color:var(--gold)}
+.copybox{background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:.82rem;direction:ltr;text-align:left;word-break:break-all;flex:1;min-width:220px}
+.progbar{height:7px;background:var(--line);border-radius:5px;overflow:hidden;width:90px;display:inline-block;vertical-align:middle;margin-inline-end:6px}
+.progbar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#14a08a)}
+.muted{color:var(--muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">⚖️</div>
+    <div><div class="brand-title">ניהול האפליקציה</div><div class="brand-sub">סדר דין פלילי · פרופ' טמיר</div></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="/index.html">‹ לאפליקציה</a>
+    <button id="logoutBtn">התנתקות</button>
+  </div>
+</div>
+<div class="wrap">
+  <h1>לוח ניהול</h1>
+  <p class="lead">יצירת הזמנות משתמש חדשות, מעקב אחר סטטיסטיקות ופעילות, וניהול הרשאות.</p>
+
+  <div class="grid3" id="summaryStats"></div>
+
+  <h2>הזמנות משתמשים</h2>
+  <div class="card">
+    <div class="inviteRow">
+      <input type="text" id="inviteNote" placeholder="הערה (למשל: שם החבר/ה) — אופציונלי">
+      <button class="btn" id="createInviteBtn">➕ יצירת קישור הזמנה</button>
+    </div>
+    <div id="newInviteResult" style="margin-top:12px"></div>
+  </div>
+  <div class="card tbl-wrap">
+    <table>
+      <thead><tr><th>נוצר בתאריך</th><th>הערה</th><th>סטטוס</th><th>נוצל ע"י</th><th></th></tr></thead>
+      <tbody id="invitesBody"></tbody>
+    </table>
+  </div>
+
+  <h2>משתמשים ומעקב התקדמות</h2>
+  <div class="card tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>שם</th><th>אימייל</th><th>הצטרפ/ה</th><th>נראה לאחרונה</th>
+        <th>התקדמות</th><th>כרטיסיות</th><th>שאלות (דיוק)</th><th>הרשאה</th><th></th>
+      </tr></thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+async function api(path, opts){
+  const res = await fetch(path, Object.assign({headers:{"Content-Type":"application/json"}}, opts||{}));
+  if(res.status===401){ window.location.href="/login.html"; throw new Error("unauth"); }
+  return res.json();
+}
+function fmtDate(s){ if(!s) return "—"; return new Date(s.replace(" ","T")+"Z").toLocaleDateString("he-IL",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+
+async function loadUsers(){
+  const {users} = await api("/api/admin/users");
+  const total = users.length;
+  const active7d = users.filter(u=>u.lastSeenAt && (Date.now()-new Date(u.lastSeenAt.replace(" ","T")+"Z").getTime()) < 7*24*3600*1000).length;
+  const avgProgress = total ? Math.round(users.reduce((a,u)=>a+u.progressPct,0)/total) : 0;
+  $("#summaryStats").innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">משתמשים רשומים</div></div>
+    <div class="stat"><div class="n">${active7d}</div><div class="l">פעילים ב-7 ימים אחרונים</div></div>
+    <div class="stat"><div class="n">${avgProgress}%</div><div class="l">התקדמות ממוצעת</div></div>`;
+
+  const body = $("#usersBody");
+  body.innerHTML = users.map(u=>`
+    <tr>
+      <td>${u.firstName} ${u.lastName}</td>
+      <td class="muted">${u.email}</td>
+      <td class="muted">${fmtDate(u.createdAt)}</td>
+      <td class="muted">${fmtDate(u.lastSeenAt)}</td>
+      <td><span class="progbar"><i style="width:${u.progressPct}%"></i></span>${u.progressPct}%</td>
+      <td>${u.cardsSeenCount}</td>
+      <td>${u.quizAnswered} (${u.quizAccuracy}%)</td>
+      <td>${u.isAdmin ? '<span class="pill admin">מנהל</span>' : '<span class="pill">משתמש</span>'}</td>
+      <td>
+        <button class="btn sm" data-toggle-admin="${u.id}" data-is-admin="${u.isAdmin?1:0}">${u.isAdmin?'הסרת ניהול':'הפיכה למנהל'}</button>
+        <button class="btn sm danger" data-del-user="${u.id}">מחיקה</button>
+      </td>
+    </tr>`).join("");
+
+  body.querySelectorAll("[data-toggle-admin]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.toggleAdmin;
+      const isAdmin = btn.dataset.isAdmin === "1";
+      await api(`/api/admin/users/${id}/admin`, {method:"POST", body: JSON.stringify({isAdmin: !isAdmin})});
+      loadUsers();
+    };
+  });
+  body.querySelectorAll("[data-del-user]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      if(!confirm("למחוק את המשתמש לצמיתות? כל נתוני ההתקדמות שלו יימחקו.")) return;
+      await api(`/api/admin/users/${btn.dataset.delUser}`, {method:"DELETE"});
+      loadUsers();
+    };
+  });
+}
+
+async function loadInvites(){
+  const {invites} = await api("/api/admin/invites");
+  const body = $("#invitesBody");
+  body.innerHTML = invites.map(i=>`
+    <tr>
+      <td class="muted">${fmtDate(i.created_at)}</td>
+      <td>${i.note || "—"}</td>
+      <td>${i.used_at ? '<span class="pill">נוצל</span>' : '<span class="pill admin">ממתין</span>'}</td>
+      <td class="muted">${i.used_at ? (i.used_first_name+" "+i.used_last_name) : "—"}</td>
+      <td>${i.used_at ? "" : `<button class="btn sm danger" data-del-invite="${i.id}">ביטול</button>`}</td>
+    </tr>`).join("");
+  body.querySelectorAll("[data-del-invite]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      await api(`/api/admin/invites/${btn.dataset.delInvite}`, {method:"DELETE"});
+      loadInvites();
+    };
+  });
+}
+
+$("#createInviteBtn").onclick = async ()=>{
+  const note = $("#inviteNote").value.trim();
+  const {token} = await api("/api/admin/invites", {method:"POST", body: JSON.stringify({note})});
+  const link = `${window.location.origin}/register.html?token=${token}`;
+  $("#newInviteResult").innerHTML = `
+    <div class="inviteRow">
+      <div class="copybox" id="linkBox">${link}</div>
+      <button class="btn sm" id="copyBtn">העתקה</button>
+    </div>`;
+  $("#copyBtn").onclick = ()=>{ navigator.clipboard.writeText(link); $("#copyBtn").textContent="הועתק!"; };
+  $("#inviteNote").value = "";
+  loadInvites();
+};
+
+$("#logoutBtn").onclick = async ()=>{
+  await api("/api/auth/logout", {method:"POST"});
+  window.location.href = "/login.html";
+};
+
+loadUsers();
+loadInvites();
+</script>
+</body>
+</html>
