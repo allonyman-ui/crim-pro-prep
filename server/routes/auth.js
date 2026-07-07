@@ -29,16 +29,13 @@ router.get("/invite/:token", (req, res) => {
 });
 
 router.post("/register", (req, res) => {
-  const { token, firstName, lastName, email, password } = req.body || {};
-  if (!token || !firstName || !lastName || !email || !password) {
+  const { firstName, lastName, email, password } = req.body || {};
+  if (!firstName || !lastName || !email || !password) {
     return res.status(400).json({ error: "missing_fields" });
   }
   if (String(password).length < 6) {
     return res.status(400).json({ error: "weak_password" });
   }
-  const invite = db.prepare("SELECT * FROM invites WHERE token = ?").get(token);
-  if (!invite) return res.status(404).json({ error: "invite_not_found" });
-  if (invite.used_by) return res.status(410).json({ error: "invite_used" });
 
   const normEmail = String(email).trim().toLowerCase();
   const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(normEmail);
@@ -50,7 +47,6 @@ router.post("/register", (req, res) => {
     .run(String(firstName).trim(), String(lastName).trim(), normEmail, hash);
   const userId = result.lastInsertRowid;
   db.prepare("INSERT INTO progress (user_id) VALUES (?)").run(userId);
-  db.prepare("UPDATE invites SET used_by = ?, used_at = datetime('now') WHERE id = ?").run(userId, invite.id);
 
   req.session.userId = userId;
   res.json({ ok: true });

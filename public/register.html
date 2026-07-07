@@ -44,12 +44,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <div class="brand-sub">הסיכומים והאפליקציה של אסף אלוני</div>
     </div>
   </div>
-  <div id="inviteCheck">
-    <p class="lead">בודקים את קישור ההזמנה…</p>
-  </div>
-  <form id="regForm" style="display:none">
+  <form id="regForm">
     <h1>יצירת חשבון</h1>
-    <p class="lead">קיבלת הזמנה להצטרף לאפליקציית הלימוד. מלאו את הפרטים כדי להתחיל.</p>
+    <p class="lead">מלאו את הפרטים כדי להצטרף לאפליקציית הלימוד.</p>
     <div class="row">
       <div><label for="firstName">שם פרטי</label><input type="text" id="firstName" required></div>
       <div><label for="lastName">שם משפחה</label><input type="text" id="lastName" required></div>
@@ -64,31 +61,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
   </form>
 </div>
 <script>
-const params = new URLSearchParams(window.location.search);
-const token = params.get("token");
-const checkBox = document.getElementById("inviteCheck");
 const form = document.getElementById("regForm");
-
-(async ()=>{
-  if(!token){
-    checkBox.innerHTML = '<p class="lead">קישור לא תקין. יש לבקש קישור הזמנה חדש ממנהל האפליקציה.</p>';
-    return;
-  }
-  try{
-    const res = await fetch("/api/auth/invite/" + encodeURIComponent(token));
-    const data = await res.json();
-    if(!res.ok){
-      checkBox.innerHTML = data.error==="invite_used"
-        ? '<p class="lead">קישור ההזמנה הזה כבר נוצל. יש לבקש קישור חדש.</p>'
-        : '<p class="lead">קישור ההזמנה אינו תקין או שפג תוקפו.</p>';
-      return;
-    }
-    checkBox.style.display = "none";
-    form.style.display = "block";
-  }catch(e){
-    checkBox.innerHTML = '<p class="lead">שגיאת רשת. נסו לרענן את הדף.</p>';
-  }
-})();
 
 form.addEventListener("submit", async (e)=>{
   e.preventDefault();
@@ -100,7 +73,6 @@ form.addEventListener("submit", async (e)=>{
     const res = await fetch("/api/auth/register", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        token,
         firstName: document.getElementById("firstName").value.trim(),
         lastName: document.getElementById("lastName").value.trim(),
         email: document.getElementById("email").value.trim(),
@@ -111,9 +83,7 @@ form.addEventListener("submit", async (e)=>{
     if(!res.ok){
       const map = {
         email_taken: "כתובת האימייל כבר רשומה במערכת.",
-        weak_password: "הסיסמה קצרה מדי (לפחות 6 תווים).",
-        invite_used: "קישור ההזמנה כבר נוצל.",
-        invite_not_found: "קישור ההזמנה אינו תקין."
+        weak_password: "הסיסמה קצרה מדי (לפחות 6 תווים)."
       };
       errBox.textContent = map[data.error] || "שגיאה ביצירת החשבון.";
       errBox.classList.add("show");
