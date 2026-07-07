@@ -56,6 +56,27 @@ router.post("/register", (req, res) => {
   res.json({ ok: true });
 });
 
+router.post("/request-access", (req, res) => {
+  const { firstName, lastName, email, message } = req.body || {};
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const normEmail = String(email).trim().toLowerCase();
+  const existingUser = db.prepare("SELECT id FROM users WHERE email = ?").get(normEmail);
+  if (existingUser) return res.status(409).json({ error: "email_taken" });
+
+  const pending = db
+    .prepare("SELECT id FROM access_requests WHERE email = ? AND status = 'pending'")
+    .get(normEmail);
+  if (pending) return res.status(409).json({ error: "already_requested" });
+
+  db.prepare(
+    "INSERT INTO access_requests (first_name, last_name, email, message) VALUES (?, ?, ?, ?)"
+  ).run(String(firstName).trim(), String(lastName).trim(), normEmail, message ? String(message).trim() : null);
+
+  res.json({ ok: true });
+});
+
 router.get("/me", (req, res) => {
   const uid = req.session && req.session.userId;
   if (!uid) return res.status(401).json({ error: "not_authenticated" });

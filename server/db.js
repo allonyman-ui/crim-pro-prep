@@ -49,6 +49,20 @@ CREATE TABLE IF NOT EXISTS activity_days (
   PRIMARY KEY(user_id, day),
   FOREIGN KEY(user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS access_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  invite_token TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_at TEXT,
+  decided_by INTEGER,
+  FOREIGN KEY(decided_by) REFERENCES users(id)
+);
 `);
 
 module.exports = db;

@@ -82,4 +82,41 @@ router.delete("/users/:id", (req, res) => {
   res.json({ ok: true });
 });
 
+router.get("/requests", (req, res) => {
+  const rows = db.prepare("SELECT * FROM access_requests ORDER BY created_at DESC").all();
+  res.json({ requests: rows });
+});
+
+router.post("/requests/:id/approve", (req, res) => {
+  const request = db.prepare("SELECT * FROM access_requests WHERE id = ?").get(req.params.id);
+  if (!request) return res.status(404).json({ error: "request_not_found" });
+  if (request.status !== "pending") return res.status(409).json({ error: "already_decided" });
+
+  const token = crypto.randomBytes(16).toString("hex");
+  const note = `${request.first_name} ${request.last_name} (בקשה)`;
+  db.prepare("INSERT INTO invites (token, note, created_by) VALUES (?, ?, ?)").run(token, note, req.user.id);
+  db.prepare(
+    "UPDATE access_requests SET status = 'approved', invite_token = ?, decided_at = datetime('now'), decided_by = ? WHERE id = ?"
+  ).run(token, req.user.id, request.id);
+
+  res.json({ ok: true, token });
+});
+
+router.post("/requests/:id/reject", (req, res) => {
+  const request = db.prepare("SELECT * FROM access_requests WHERE id = ?").get(req.params.id);
+  if (!request) return res.status(404).json({ error: "request_not_found" });
+  if (request.status !== "pending") return res.status(409).json({ error: "already_decided" });
+
+  db.prepare(
+    "UPDATE access_requests SET status = 'rejected', decided_at = datetime('now'), decided_by = ? WHERE id = ?"
+  ).run(req.user.id, request.id);
+
+  res.json({ ok: true });
+});
+
+router.delete("/requests/:id", (req, res) => {
+  db.prepare("DELETE FROM access_requests WHERE id = ?").run(req.params.id);
+  res.json({ ok: true });
+});
+
 module.exports = router;

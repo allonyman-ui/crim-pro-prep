@@ -31,8 +31,8 @@ app.use(
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 
-// Public assets that don't require auth (login/register pages only)
-app.get(["/login.html", "/register.html"], (req, res) => {
+// Public assets that don't require auth (login/register/request pages only)
+app.get(["/login.html", "/register.html", "/request.html"], (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, req.path));
 });
 

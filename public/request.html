@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>בקשת גישה · סדר דין פלילי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@700;900&family=Heebo:wght@400;500;700;900&family=Rubik:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#17233d; --navy:#0f1e38; --navy2:#1a2e4c; --navy3:#25406a; --paper:#e5e9f0; --card:#FFFFFF;
+  --line:#dce2ec; --muted:#5a6a85; --stamp:#c0392b;
+  --gold:#8a6d1a; --gold-bright:#d3a73e; --gold-2:#c1902f; --gold-bg:#f8edd8; --goldln:#ecd9a8;
+  --blue:#305686; --ok:#1f9d6b; --okbg:#e7f6ef;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(155deg,var(--navy),var(--navy2) 60%,var(--navy3));color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{background:var(--card);border-radius:18px;padding:34px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.brand-logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--gold-bright),var(--gold-2));display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.brand-title{font-family:'Rubik',sans-serif;font-weight:700;font-size:1.15rem;color:var(--navy)}
+.brand-sub{font-size:.75rem;color:var(--gold);margin-top:2px}
+h1{font-family:'Frank Ruhl Libre',serif;font-size:1.35rem;color:var(--navy);margin-bottom:6px}
+p.lead{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+.row{display:flex;gap:10px}
+.row > div{flex:1}
+label{display:block;font-size:.85rem;font-weight:700;color:var(--navy2);margin:14px 0 6px}
+input,textarea{width:100%;padding:12px 14px;border:2px solid var(--line);border-radius:10px;font-family:'Heebo';font-size:1rem}
+textarea{resize:vertical;min-height:70px}
+input:focus,textarea:focus{outline:none;border-color:var(--blue)}
+button{width:100%;margin-top:22px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Heebo';font-weight:700;font-size:1rem;cursor:pointer;transition:.15s}
+button:hover{background:var(--navy3)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.err{background:#fbe9e8;border:1px solid var(--stamp);color:var(--stamp);border-radius:10px;padding:10px 14px;font-size:.88rem;margin-top:14px;display:none}
+.err.show{display:block}
+.ok{background:var(--okbg);border:1px solid #b6ded8;border-radius:10px;padding:14px 16px;font-size:.9rem;color:var(--ok);font-weight:700}
+.foot{text-align:center;color:var(--muted);font-size:.78rem;margin-top:18px}
+.back{display:inline-block;margin-top:16px;color:var(--blue);font-size:.85rem;font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="brand">
+    <div class="brand-logo">⚖️</div>
+    <div>
+      <div class="brand-title">סדר דין פלילי</div>
+      <div class="brand-sub">הסיכומים והאפליקציה של אסף אלוני</div>
+    </div>
+  </div>
+  <div id="formWrap">
+    <h1>בקשת גישה</h1>
+    <p class="lead">האפליקציה בהזמנה בלבד. מלאו את הפרטים ואשלח לכם קישור הרשמה לאחר אישור.</p>
+    <form id="reqForm">
+      <div class="row">
+        <div><label for="firstName">שם פרטי</label><input type="text" id="firstName" required></div>
+        <div><label for="lastName">שם משפחה</label><input type="text" id="lastName" required></div>
+      </div>
+      <label for="email">אימייל</label>
+      <input type="email" id="email" required>
+      <label for="message">הודעה (אופציונלי)</label>
+      <textarea id="message" placeholder="למשל: איך הכרת את האפליקציה"></textarea>
+      <div class="err" id="err"></div>
+      <button type="submit" id="submitBtn">שליחת בקשה</button>
+    </form>
+  </div>
+  <div style="text-align:center"><a class="back" href="/login.html">‹ חזרה להתחברות</a></div>
+</div>
+<script>
+document.getElementById("reqForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const submitBtn = document.getElementById("submitBtn");
+  const errBox = document.getElementById("err");
+  errBox.classList.remove("show");
+  submitBtn.disabled = true;
+  try{
+    const res = await fetch("/api/auth/request-access", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        firstName: document.getElementById("firstName").value.trim(),
+        lastName: document.getElementById("lastName").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        message: document.getElementById("message").value.trim()
+      })
+    });
+    const data = await res.json();
+    if(!res.ok){
+      const map = {
+        email_taken: "כתובת האימייל הזו כבר רשומה במערכת.",
+        already_requested: "כבר קיימת בקשה ממתינה עם האימייל הזה."
+      };
+      errBox.textContent = map[data.error] || "שגיאה בשליחת הבקשה.";
+      errBox.classList.add("show");
+      submitBtn.disabled = false;
+      return;
+    }
+    document.getElementById("formWrap").innerHTML = `
+      <h1>בקשת גישה</h1>
+      <div class="ok">✅ הבקשה נשלחה בהצלחה! אעדכן אותך ברגע שהיא תאושר ותקבל/י קישור הרשמה.</div>`;
+  }catch(err){
+    errBox.textContent = "שגיאת רשת. נסו שוב.";
+    errBox.classList.add("show");
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

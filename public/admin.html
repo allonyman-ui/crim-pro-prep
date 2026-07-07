@@ -69,6 +69,14 @@ tr:nth-child(even) td{background:#f7f9fc}
 
   <div class="grid3" id="summaryStats"></div>
 
+  <h2>בקשות גישה ממתינות</h2>
+  <div class="card tbl-wrap">
+    <table>
+      <thead><tr><th>נוצר בתאריך</th><th>שם</th><th>אימייל</th><th>הודעה</th><th>סטטוס</th><th></th></tr></thead>
+      <tbody id="requestsBody"></tbody>
+    </table>
+  </div>
+
   <h2>הזמנות משתמשים</h2>
   <div class="card">
     <div class="inviteRow">
@@ -148,6 +156,45 @@ async function loadUsers(){
   });
 }
 
+async function loadRequests(){
+  const {requests} = await api("/api/admin/requests");
+  const body = $("#requestsBody");
+  const statusPill = (s)=> s==="pending" ? '<span class="pill admin">ממתין</span>'
+    : s==="approved" ? '<span class="pill" style="background:var(--okbg);color:var(--ok)">אושר</span>'
+    : '<span class="pill" style="background:#fbe9e8;color:var(--stamp)">נדחה</span>';
+  body.innerHTML = requests.map(r=>`
+    <tr>
+      <td class="muted">${fmtDate(r.created_at)}</td>
+      <td>${r.first_name} ${r.last_name}</td>
+      <td class="muted">${r.email}</td>
+      <td class="muted">${r.message || "—"}</td>
+      <td>${statusPill(r.status)}${r.status==="approved" && r.invite_token ? `<div class="copybox" style="margin-top:6px">${window.location.origin}/register.html?token=${r.invite_token}</div>` : ""}</td>
+      <td>${r.status==="pending" ? `
+        <button class="btn sm" data-approve-req="${r.id}">אישור</button>
+        <button class="btn sm danger" data-reject-req="${r.id}">דחייה</button>
+      ` : `<button class="btn sm danger" data-del-req="${r.id}">הסרה</button>`}</td>
+    </tr>`).join("") || `<tr><td colspan="6" class="muted">אין בקשות גישה כרגע.</td></tr>`;
+
+  body.querySelectorAll("[data-approve-req]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      await api(`/api/admin/requests/${btn.dataset.approveReq}/approve`, {method:"POST"});
+      loadRequests(); loadInvites();
+    };
+  });
+  body.querySelectorAll("[data-reject-req]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      await api(`/api/admin/requests/${btn.dataset.rejectReq}/reject`, {method:"POST"});
+      loadRequests();
+    };
+  });
+  body.querySelectorAll("[data-del-req]").forEach(btn=>{
+    btn.onclick = async ()=>{
+      await api(`/api/admin/requests/${btn.dataset.delReq}`, {method:"DELETE"});
+      loadRequests();
+    };
+  });
+}
+
 async function loadInvites(){
   const {invites} = await api("/api/admin/invites");
   const body = $("#invitesBody");
@@ -188,6 +235,7 @@ $("#logoutBtn").onclick = async ()=>{
 
 loadUsers();
 loadInvites();
+loadRequests();
 </script>
 </body>
 </html>
