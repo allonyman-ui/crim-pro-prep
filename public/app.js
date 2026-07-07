@@ -50,6 +50,52 @@ async function loadUserBar(){
   }catch(e){}
 }
 
+/* ---- Easter egg: type יששכרוב anywhere to see the exclusionary rule in action ---- */
+function setupEasterEgg(){
+  const trigger="יששכרוב";
+  let buf="", cooldown=false;
+  const style=document.createElement("style");
+  style.textContent=`
+    @keyframes eggFall{0%{transform:translateY(-10vh) rotate(0deg);opacity:0}10%{opacity:1}100%{transform:translateY(110vh) rotate(360deg);opacity:.9}}
+    @keyframes eggStamp{0%{transform:translate(-50%,-50%) scale(2.4) rotate(-14deg);opacity:0}60%{transform:translate(-50%,-50%) scale(1) rotate(-6deg);opacity:1}100%{transform:translate(-50%,-50%) scale(1) rotate(-6deg);opacity:1}}
+    .egg-overlay{position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden}
+    .egg-drop{position:absolute;top:0;font-size:1.8rem;animation:eggFall linear forwards}
+    .egg-msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;
+      background:#fff;border:3px solid var(--stamp);color:var(--stamp);font-family:'Frank Ruhl Libre',serif;
+      font-weight:900;font-size:1.3rem;padding:18px 26px;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.35);
+      animation:eggStamp .5s ease forwards;text-align:center;pointer-events:none}
+  `;
+  document.head.appendChild(style);
+
+  function fire(){
+    if(cooldown)return;
+    cooldown=true;
+    const overlay=document.createElement("div"); overlay.className="egg-overlay";
+    document.body.appendChild(overlay);
+    const icons=["🔨","⚖️","🥊","📜"];
+    for(let i=0;i<28;i++){
+      const d=document.createElement("div"); d.className="egg-drop";
+      d.textContent=icons[Math.floor(Math.random()*icons.length)];
+      d.style.left=Math.random()*100+"vw";
+      d.style.animationDuration=(2+Math.random()*1.6)+"s";
+      d.style.animationDelay=(Math.random()*0.8)+"s";
+      overlay.appendChild(d);
+    }
+    const msg=document.createElement("div"); msg.className="egg-msg";
+    msg.innerHTML=`פסול קבילות! 🔨<br><span style="font-size:.85rem;font-weight:600;color:var(--ink)">כמו בהלכת יששכרוב — גם הבחינה הזו תיפסל... מלהיות בעיה בשבילך.<br>בהצלחה, אסף מאמין בך 💛</span>`;
+    document.body.appendChild(msg);
+    setTimeout(()=>{overlay.remove();msg.remove();},4200);
+    setTimeout(()=>{cooldown=false;},6000);
+  }
+
+  document.addEventListener("keydown",(e)=>{
+    if(e.key && e.key.length===1){
+      buf=(buf+e.key).slice(-trigger.length);
+      if(buf===trigger)fire();
+    }
+  });
+}
+
 /* ---- Tabs ---- */
 const TABS = [
   {id:"home",   label:"בית",              icon:"🏠"},
@@ -91,9 +137,10 @@ function render(){
 function renderHome(){
   const app=$("#app");
   const hero=el("div","hero");
-  hero.innerHTML=`<span class="stamp">מפתח המאסטר לבחינה</span>
+  hero.innerHTML=`<span class="stamp">הסיכום האישי של אסף אלוני</span>
     <h2 style="margin-top:12px">כל מה שצריך כדי לעבור את סדר הדין הפלילי — במקום אחד</h2>
-    <p class="lead">האפליקציה מבוססת על סיכומי ההרצאות והתרגולים של פרופ' טמיר ועו"ד זגורי, על 12 בחינות לדוגמה עם הפתרונות הרשמיים, ועל "מיני-הקייסים". כוללת חומר לימוד מלא, מאגר פסיקה מתויג, מודלים ויזואליים לפתרון קייסים, כרטיסיות, מבחנים אמריקאיים אינטראקטיביים, וסימולציות בחינה מלאות עם תשובות מודל.</p>`;
+    <p class="lead">האפליקציה מבוססת על הסיכומים האישיים שלי להרצאות ולתרגולים של פרופ' טמיר ועו"ד זגורי, על 12 בחינות לדוגמה עם הפתרונות הרשמיים, ועל "מיני-הקייסים". כוללת חומר לימוד מלא, מאגר פסיקה מתויג, מודלים ויזואליים לפתרון קייסים, כרטיסיות, מבחנים אמריקאיים אינטראקטיביים, וסימולציות בחינה מלאות עם תשובות מודל.</p>
+    <p class="lead" style="margin-top:-8px;font-size:.82rem">© אסף אלוני · כל הזכויות שמורות · לשימוש אישי בלבד, אינו מסמך רשמי</p>`;
   app.appendChild(hero);
 
   const prog = store.get("cardsSeen",[]).length;
@@ -490,4 +537,5 @@ buildNav();
 render();
 loadUserBar();
 hydrateFromServer().then(()=>{ if(current==="home")render(); });
+setupEasterEgg();
 })();
