@@ -95,6 +95,16 @@ function fmtDuration(sec){
   if(m)return `${m} דקות`;
   return "פחות מדקה";
 }
+// Fisher-Yates: returns an array of original indices in a random display order,
+// so options are re-scrambled every time a quiz/sim is (re)rendered.
+function shuffleIdx(n){
+  const idx=[...Array(n).keys()];
+  for(let i=idx.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [idx[i],idx[j]]=[idx[j],idx[i]];
+  }
+  return idx;
+}
 
 async function loadUserBar(){
   try{
@@ -453,7 +463,7 @@ function renderQuiz(){
   DATA.mcq.forEach((qq,qi)=>{
     const c=el("div","qcard");
     let opts="";
-    qq.o.forEach((o,oi)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][oi]}.</span>${o}</label>`;});
+    shuffleIdx(qq.o.length).forEach((oi,pos)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][pos]}.</span>${qq.o[oi]}</label>`;});
     c.innerHTML=`<span class="qnum">שאלה ${qi+1}</span><span class="qsrc">${qq.src} · ${qq.topic}</span>
       <div class="qtext">${qq.q}</div>${opts}
       <div class="qexplain" id="exp${qi}"><b>הסבר:</b> ${qq.e}</div>`;
@@ -582,7 +592,7 @@ function openSim(s){
     s.mcq.forEach((qq,qi)=>{
       const c=el("div","qcard");
       let opts="";
-      qq.o.forEach((o,oi)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][oi]}.</span>${o}</label>`;});
+      shuffleIdx(qq.o.length).forEach((oi,pos)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][pos]}.</span>${qq.o[oi]}</label>`;});
       c.innerHTML=`<span class="qnum">שאלה ${qi+1}</span>${qq.topic?`<span class="qsrc">${qq.topic}</span>`:""}
         <div class="qtext">${qq.q}</div>${opts}
         <div class="qexplain" id="simExp${qi}"><b>הסבר:</b> ${qq.e}</div>`;
