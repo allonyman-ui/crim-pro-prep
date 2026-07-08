@@ -14,7 +14,9 @@
   --blue:#305686;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Heebo',sans-serif;background:linear-gradient(155deg,var(--navy),var(--navy2) 60%,var(--navy3));color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+body{font-family:'Heebo',sans-serif;background:linear-gradient(155deg,var(--navy),var(--navy2) 60%,var(--navy3));color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.wrap{max-width:420px;width:100%}
+.banner{background:linear-gradient(135deg,var(--gold-bright),var(--gold-2));color:var(--navy);border-radius:14px;padding:16px 20px;margin-bottom:16px;font-weight:800;font-size:1.02rem;text-align:center;line-height:1.5;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .box{background:var(--card);border-radius:18px;padding:34px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
 .brand-logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--gold-bright),var(--gold-2));display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
@@ -37,6 +39,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </style>
 </head>
 <body>
+<div class="wrap">
+  <div class="banner">🔓 ניתן להירשם עם כל אימייל וסיסמה שתבחרו — אין צורך בפרטים אמיתיים, המידע משמש רק לשמירת ההתקדמות שלכם באפליקציה</div>
+</div>
 <div class="box">
   <div class="brand">
     <div class="brand-logo">⚖️</div>
