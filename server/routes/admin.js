@@ -33,7 +33,7 @@ router.get("/users", (req, res) => {
   const rows = db
     .prepare(
       `SELECT u.id, u.first_name, u.last_name, u.email, u.is_admin, u.created_at, u.last_seen_at,
-              p.cards_seen, p.quiz_stats, p.chapters_opened, p.updated_at AS progress_updated_at
+              p.cards_seen, p.quiz_stats, p.chapters_opened, p.time_spent_sec, p.updated_at AS progress_updated_at
        FROM users u LEFT JOIN progress p ON p.user_id = u.id
        ORDER BY u.created_at DESC`
     )
@@ -59,6 +59,7 @@ router.get("/users", (req, res) => {
       quizAnswered: quizStats.answered,
       quizCorrect: quizStats.correct,
       quizAccuracy: quizStats.answered ? Math.round((quizStats.correct / quizStats.answered) * 100) : 0,
+      timeSpentSec: r.time_spent_sec || 0,
       progressPct: Math.min(100, progressPct),
     };
   });

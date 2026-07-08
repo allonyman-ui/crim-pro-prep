@@ -97,7 +97,7 @@ tr:nth-child(even) td{background:#f7f9fc}
     <table>
       <thead><tr>
         <th>שם</th><th>אימייל</th><th>הצטרפ/ה</th><th>נראה לאחרונה</th>
-        <th>התקדמות</th><th>כרטיסיות</th><th>שאלות (דיוק)</th><th>הרשאה</th><th></th>
+        <th>התקדמות</th><th>כרטיסיות</th><th>שאלות (דיוק)</th><th>זמן תרגול</th><th>הרשאה</th><th></th>
       </tr></thead>
       <tbody id="usersBody"></tbody>
     </table>
@@ -111,6 +111,7 @@ async function api(path, opts){
   return res.json();
 }
 function fmtDate(s){ if(!s) return "—"; return new Date(s.replace(" ","T")+"Z").toLocaleDateString("he-IL",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+function fmtDuration(sec){ sec=sec||0; const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60); if(h)return `${h} ש' ${m} ד'`; if(m)return `${m} ד'`; return "—"; }
 
 async function loadUsers(){
   const {users} = await api("/api/admin/users");
@@ -132,6 +133,7 @@ async function loadUsers(){
       <td><span class="progbar"><i style="width:${u.progressPct}%"></i></span>${u.progressPct}%</td>
       <td>${u.cardsSeenCount}</td>
       <td>${u.quizAnswered} (${u.quizAccuracy}%)</td>
+      <td class="muted">${fmtDuration(u.timeSpentSec)}</td>
       <td>${u.isAdmin ? '<span class="pill admin">מנהל</span>' : '<span class="pill">משתמש</span>'}</td>
       <td>
         <button class="btn sm" data-toggle-admin="${u.id}" data-is-admin="${u.isAdmin?1:0}">${u.isAdmin?'הסרת ניהול':'הפיכה למנהל'}</button>

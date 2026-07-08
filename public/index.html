@@ -147,6 +147,13 @@ details[open] summary{border-bottom:1px solid var(--line)}
 .model summary{padding:10px 0;font-size:.92rem;color:var(--ok);gap:8px}
 .model summary .secmark{background:var(--ok);min-width:30px;height:30px;font-size:.8rem}
 .modeltext{background:var(--okbg);border:1px solid #b6ded8;border-radius:11px;padding:14px 16px;font-size:.92rem;white-space:pre-line;margin-top:6px}
+.selfgrade{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);font-size:.88rem}
+.sgbtns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.sgbtn{border:2px solid var(--line);background:#fff;border-radius:9px;padding:7px 13px;font-family:Heebo;font-size:.86rem;font-weight:600;cursor:pointer;transition:.15s}
+.sgbtn:hover{border-color:var(--blue)}
+.sgbtn.good.chosen{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.sgbtn.mid.chosen{background:var(--gold-bg);border-color:var(--gold);color:var(--gold)}
+.sgbtn.bad.chosen{background:#fbe9e8;border-color:var(--stamp);color:var(--stamp)}
 /* home cards */
 .hero{background:linear-gradient(155deg,#fff,#f2f5fa);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:16px}
 .stat{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px;text-align:center}

@@ -65,4 +65,16 @@ CREATE TABLE IF NOT EXISTS access_requests (
 );
 `);
 
+for (const stmt of [
+  "ALTER TABLE progress ADD COLUMN time_spent_sec INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE progress ADD COLUMN topic_stats TEXT NOT NULL DEFAULT '{}'",
+  "ALTER TABLE progress ADD COLUMN open_grades TEXT NOT NULL DEFAULT '{}'",
+]) {
+  try {
+    db.exec(stmt);
+  } catch (e) {
+    /* column already exists */
+  }
+}
+
 module.exports = db;

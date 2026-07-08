@@ -3,7 +3,7 @@
 "use strict";
 const $ = s => document.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;};
-const SYNCED_KEYS = ["cardsSeen","quizStats","chaptersOpened","lasttab"];
+const SYNCED_KEYS = ["cardsSeen","quizStats","chaptersOpened","lasttab","topicStats","openGrades"];
 let syncTimer=null;
 function scheduleSync(){
   clearTimeout(syncTimer);
@@ -14,6 +14,8 @@ function scheduleSync(){
         cardsSeen: store.get("cardsSeen",[]),
         quizStats: store.get("quizStats",{answered:0,correct:0}),
         chaptersOpened: store.get("chaptersOpened",[]),
+        topicStats: store.get("topicStats",{}),
+        openGrades: store.get("openGrades",{}),
         lastTab: store.get("lasttab","home")
       })
     }).catch(()=>{});
@@ -32,8 +34,68 @@ async function hydrateFromServer(){
     store.set("cardsSeen",p.cardsSeen||[]);
     store.set("quizStats",p.quizStats||{answered:0,correct:0});
     store.set("chaptersOpened",p.chaptersOpened||[]);
+    store.set("topicStats",p.topicStats||{});
+    store.set("openGrades",p.openGrades||{});
+    store.set("timeSpentSec",p.timeSpentSec||0);
   }catch(e){}
 }
+
+/* ---- Per-topic performance tracking ---- */
+function recordMcqAnswer(topic, isCorrect){
+  topic = topic || "כללי";
+  const stats = store.get("topicStats",{});
+  const cur = stats[topic] || {answered:0,correct:0};
+  cur.answered++; if(isCorrect)cur.correct++;
+  stats[topic] = cur;
+  store.set("topicStats",stats);
+}
+// score: 1 = ידעתי טוב, 0.5 = חלקית, 0 = לא ידעתי
+function recordOpenGrade(gradeKey, topics, score){
+  const grades = store.get("openGrades",{});
+  const prev = grades[gradeKey];
+  grades[gradeKey] = {score, ts: Date.now()};
+  store.set("openGrades",grades);
+  const stats = store.get("topicStats",{});
+  (topics||["כללי"]).forEach(topic=>{
+    const cur = stats[topic] || {answered:0,correct:0};
+    if(prev){ // undo previous grade's contribution before re-applying
+      cur.answered--; cur.correct-=prev.score;
+    }
+    cur.answered++; cur.correct+=score;
+    stats[topic]=cur;
+  });
+  store.set("topicStats",stats);
+}
+function topicsFromSim(sim){
+  // cap tags per question so grading one open question doesn't fan out across every topic the whole sim touches
+  return (sim.topics||"").split("·").map(s=>s.trim()).filter(Boolean).slice(0,5);
+}
+/* ---- Practice-time heartbeat: while the tab is visible, ping the server every 30s ---- */
+function setupTimeTracking(){
+  const HEARTBEAT_MS = 30000;
+  let timer=null;
+  function tick(){
+    if(document.visibilityState!=="visible")return;
+    fetch("/api/progress/heartbeat",{method:"POST"})
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{ if(d && typeof d.timeSpentSec==="number") store.set("timeSpentSec",d.timeSpentSec); })
+      .catch(()=>{});
+  }
+  function start(){ if(timer)return; timer=setInterval(tick,HEARTBEAT_MS); }
+  function stop(){ clearInterval(timer); timer=null; }
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="visible")start(); else stop();
+  });
+  if(document.visibilityState==="visible")start();
+}
+function fmtDuration(sec){
+  sec=sec||0;
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60);
+  if(h)return `${h} שעות ו-${m} דק'`;
+  if(m)return `${m} דקות`;
+  return "פחות מדקה";
+}
+
 async function loadUserBar(){
   try{
     const res=await fetch("/api/auth/me");
@@ -106,6 +168,7 @@ const TABS = [
   {id:"cards",  label:"כרטיסיות",          icon:"🃏"},
   {id:"quiz",   label:"מבחן אמריקאי",      icon:"✅"},
   {id:"sim",    label:"סימולציות",         icon:"📝"},
+  {id:"performance", label:"הביצועים שלי", icon:"📊"},
   {id:"exam",   label:"פרטי הבחינה",       icon:"📋"},
   {id:"podcasts", label:"פודקאסטים",       icon:"🎧"},
   {id:"leaderboard", label:"לוח מובילים",  icon:"🏆"}
@@ -139,7 +202,7 @@ function render(){
   const app=$("#app"); app.innerHTML="";
   ({home:renderHome,study:renderStudy,cases:renderCases,flows:renderFlows,
     cards:renderCards,quiz:renderQuiz,sim:renderSim,exam:renderExam,
-    podcasts:renderPodcasts,leaderboard:renderLeaderboard})[current]();
+    podcasts:renderPodcasts,leaderboard:renderLeaderboard,performance:renderPerformance})[current]();
 }
 
 /* ================= HOME ================= */
@@ -184,10 +247,21 @@ function renderHome(){
   tip.innerHTML=`<b>💡 עצת המרצה:</b> "למדו כאילו הספרים סגורים — תוצאות טובות יותר. בקריאה ראשונה של קייס אל תכתבו כלום, רק סמנו במרקר; רק אחרי שקראתם הכל — התחילו לכתוב בסדר כרונולוגי."`;
   app.appendChild(tip);
 
-  if(quizStats.answered>0){
+  const timeSpentSec = store.get("timeSpentSec",0);
+  const chaptersOpened = store.get("chaptersOpened",[]).length;
+  const myStats=el("div","grid grid3");
+  myStats.style.marginTop="16px";
+  myStats.innerHTML=`
+    <div class="stat"><div class="n">${fmtDuration(timeSpentSec)}</div><div class="l">זמן תרגול כולל</div></div>
+    <div class="stat"><div class="n">${quizStats.answered}</div><div class="l">שאלות אמריקאיות שנענו</div></div>
+    <div class="stat"><div class="n">${quizStats.answered?Math.round(quizStats.correct/quizStats.answered*100)+'%':'—'}</div><div class="l">אחוז הצלחה (${quizStats.correct} נכונות)</div></div>`;
+  app.appendChild(el("h3",null,"הנתונים האישיים שלך"));
+  app.appendChild(myStats);
+
+  if(quizStats.answered>0 || prog>0){
     const qs=el("div","exam");
     qs.style.marginTop="8px";
-    qs.innerHTML=`<b>ההתקדמות שלך במבחנים:</b> ענית על ${quizStats.answered} שאלות, ${quizStats.correct} נכונות (${Math.round(quizStats.correct/quizStats.answered*100)}%). ראית ${prog} כרטיסיות.`;
+    qs.innerHTML=`<b>ההתקדמות שלך:</b> ראית ${prog} כרטיסיות, פתחת ${chaptersOpened} פרקי לימוד, ותרגלת ${fmtDuration(timeSpentSec)} סה"כ. המשיכו כך!`;
     app.appendChild(qs);
   }
 }
@@ -401,6 +475,7 @@ function renderQuiz(){
       const st=store.get("quizStats",{answered:0,correct:0});
       st.answered++; if(oi===qq.c)st.correct++;
       store.set("quizStats",st);
+      recordMcqAnswer(qq.topic, oi===qq.c);
     };
   });
   $("#qReset").onclick=()=>{answered={};correct=0;total=0;renderQuiz();};
@@ -442,16 +517,96 @@ function openSim(s){
   h.innerHTML=`<h2>${s.title}</h2><p class="lead">${s.meta}</p>
     <div class="note"><b>איך לתרגל:</b> קראו את כל הקייס פעם אחת בלי לכתוב. סמנו סוגיות. אז כתבו תשובה מלאה בסדר כרונולוגי — ורק בסוף פתחו את "התשובה המלאה" להשוואה.</div>`;
   app.appendChild(h);
+
+  const simTopics = topicsFromSim(s);
+  const scoreBar=el("div","scorebar");
+  scoreBar.innerHTML=`<span class="s" id="simScore">0 / 0</span>
+    <div class="prog"><i id="simProg"></i></div>`;
+  app.appendChild(scoreBar);
+  let mcqTotal=0, mcqCorrect=0;
+  const openScores={}; // qi -> score, for this render session
+  function updSimScore(){
+    const openVals=Object.values(openScores);
+    const openAnswered=openVals.length;
+    const openSum=openVals.reduce((a,b)=>a+b,0);
+    const totalUnits = mcqTotal + openAnswered;
+    const correctUnits = mcqCorrect + openSum;
+    $("#simScore").textContent = totalUnits
+      ? `${correctUnits.toFixed(1).replace(/\.0$/,"")} / ${totalUnits} (${Math.round(correctUnits/totalUnits*100)}%)`
+      : "0 / 0";
+    $("#simProg").style.width=(totalUnits?correctUnits/totalUnits*100:0)+"%";
+  }
+  updSimScore();
+
   s.questions.forEach((q,i)=>{
     const box=el("div","simq");
+    const gradeKey=`${s.id}:q${i}`;
     box.innerHTML=`<h4><span>שאלה ${i+1}</span><span class="pts">${q.points} נק'</span></h4>
       <div class="simbody">
         <div class="facts">${q.q}</div>
         <details class="model"><summary><span class="secmark">✓</span> הצג תשובה מלאה (פתרון מודל)</summary>
-          <div class="modeltext">${q.model}</div></details>
+          <div class="modeltext">${q.model}</div>
+          <div class="selfgrade">
+            <b>איך הלך לך?</b> דרגו את עצמכם כדי לעקוב אחר ההתקדמות שלכם בנושא זה:
+            <div class="sgbtns" data-key="${gradeKey}">
+              <button class="sgbtn good" data-score="1">✅ ידעתי טוב</button>
+              <button class="sgbtn mid" data-score="0.5">🟡 חלקית</button>
+              <button class="sgbtn bad" data-score="0">❌ לא ידעתי</button>
+            </div>
+          </div>
+        </details>
       </div>`;
     app.appendChild(box);
+    const existing=(store.get("openGrades",{}))[gradeKey];
+    if(existing!=null && existing.score!=null){
+      openScores[i]=existing.score;
+      const btns=box.querySelectorAll(".sgbtn");
+      btns.forEach(b=>{ if(+b.dataset.score===existing.score)b.classList.add("chosen"); });
+      updSimScore();
+    }
+    box.querySelectorAll(".sgbtn").forEach(btn=>{
+      btn.onclick=()=>{
+        const score=+btn.dataset.score;
+        openScores[i]=score;
+        recordOpenGrade(gradeKey, simTopics, score);
+        box.querySelectorAll(".sgbtn").forEach(b=>b.classList.remove("chosen"));
+        btn.classList.add("chosen");
+        updSimScore();
+      };
+    });
   });
+  if(s.mcq && s.mcq.length){
+    app.appendChild(el("h3",null,`חלק ב' — שאלות אמריקאיות (${s.mcq.length})`));
+    app.appendChild(el("p","lead","בבחינה האמיתית בוחרים 4 מתוך 8 — כאן מומלץ לענות על כולן לתרגול מלא."));
+    const mwrap=el("div"); app.appendChild(mwrap);
+    s.mcq.forEach((qq,qi)=>{
+      const c=el("div","qcard");
+      let opts="";
+      qq.o.forEach((o,oi)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][oi]}.</span>${o}</label>`;});
+      c.innerHTML=`<span class="qnum">שאלה ${qi+1}</span>${qq.topic?`<span class="qsrc">${qq.topic}</span>`:""}
+        <div class="qtext">${qq.q}</div>${opts}
+        <div class="qexplain" id="simExp${qi}"><b>הסבר:</b> ${qq.e}</div>`;
+      mwrap.appendChild(c);
+    });
+    mwrap.querySelectorAll(".opt").forEach(opt=>{
+      opt.onclick=()=>{
+        const qi=+opt.dataset.qi, oi=+opt.dataset.oi;
+        const opts=mwrap.querySelectorAll(`.opt[data-qi="${qi}"]`);
+        if([...opts].some(o=>o.classList.contains("correct")||o.classList.contains("wrong")))return;
+        const qq=s.mcq[qi];
+        opts.forEach(o=>{const j=+o.dataset.oi;
+          if(j===qq.c)o.classList.add("correct");
+          if(j===oi&&oi!==qq.c)o.classList.add("wrong");});
+        $("#simExp"+qi).classList.add("show");
+        const st=store.get("quizStats",{answered:0,correct:0});
+        st.answered++; if(oi===qq.c)st.correct++;
+        store.set("quizStats",st);
+        recordMcqAnswer(qq.topic||simTopics[0], oi===qq.c);
+        mcqTotal++; if(oi===qq.c)mcqCorrect++;
+        updSimScore();
+      };
+    });
+  }
   if(s.topics){
     const t=el("details","model");
     t.style.marginTop="6px";
@@ -533,7 +688,7 @@ function renderPodcasts(){
 function renderLeaderboard(){
   const app=$("#app");
   app.appendChild(el("h2",null,"לוח מובילים"));
-  app.appendChild(el("p","lead","דירוג לפי אחוז ההתקדמות בחומר (כרטיסיות + שאלות שנענו). מוצג שם פרטי בלבד."));
+  app.appendChild(el("p","lead","דירוג לפי אחוז ההתקדמות בחומר (כרטיסיות + שאלות שנענו), עם נתוני תרגול מלאים לכל משתמש. מוצג שם פרטי בלבד."));
   const list=el("div"); list.id="lbList"; list.innerHTML=`<div class="card">טוען…</div>`;
   app.appendChild(list);
   fetch("/api/progress/leaderboard").then(r=>r.json()).then(({leaderboard})=>{
@@ -549,7 +704,9 @@ function renderLeaderboard(){
         <div style="font-size:1.3rem;min-width:34px;text-align:center">${medal}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;color:var(--navy);font-family:'Frank Ruhl Libre',serif">${u.firstName}${u.isMe?' <span style="color:var(--gold);font-size:.8rem">(את/ה)</span>':''}</div>
-          <div style="font-size:.82rem;color:var(--muted);margin-top:2px">דיוק במבחנים: ${u.quizAccuracy}%${u.streak?` · רצף ${u.streak} ימים 🔥`:''}</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:2px">
+            ${u.quizAnswered} שאלות (${u.quizAccuracy}% דיוק) · ${u.cardsSeenCount} כרטיסיות · ${u.chaptersOpenedCount} פרקים · ${fmtDuration(u.timeSpentSec)} תרגול${u.streak?` · רצף ${u.streak} ימים 🔥`:''}
+          </div>
           <div style="margin-top:6px">${badges}</div>
         </div>
         <div style="text-align:center;min-width:70px">
@@ -561,6 +718,67 @@ function renderLeaderboard(){
   }).catch(()=>{list.innerHTML=`<div class="card">שגיאה בטעינת לוח המובילים.</div>`;});
 }
 
+/* ================= MY PERFORMANCE ================= */
+function renderPerformance(){
+  const app=$("#app");
+  app.appendChild(el("h2",null,"הביצועים שלי"));
+  app.appendChild(el("p","lead","סיכום מלא של הציונים שלכם — שאלות אמריקאיות (מהמבחן ומהסימולציות) וגם שאלות פתוחות שדירגתם בעצמכם — מפורק לפי נושא, כדי שתדעו בדיוק איפה חזק ואיפה כדאי לחזור."));
+
+  const quizStats = store.get("quizStats",{answered:0,correct:0});
+  const openGrades = store.get("openGrades",{});
+  const topicStats = store.get("topicStats",{});
+  const openVals = Object.values(openGrades).map(g=>g.score);
+  const openAnswered = openVals.length;
+  const openAvg = openAnswered ? openVals.reduce((a,b)=>a+b,0)/openAnswered : 0;
+
+  const summary=el("div","grid grid3");
+  summary.innerHTML=`
+    <div class="stat"><div class="n">${quizStats.answered}</div><div class="l">שאלות אמריקאיות שנענו</div></div>
+    <div class="stat"><div class="n">${quizStats.answered?Math.round(quizStats.correct/quizStats.answered*100)+'%':'—'}</div><div class="l">דיוק בשאלות אמריקאיות</div></div>
+    <div class="stat"><div class="n">${openAnswered?Math.round(openAvg*100)+'%':'—'}</div><div class="l">ציון עצמי בשאלות פתוחות (${openAnswered} דורגו)</div></div>`;
+  app.appendChild(summary);
+
+  const topics = Object.keys(topicStats);
+  if(!topics.length){
+    const empty=el("div","note");
+    empty.style.marginTop="16px";
+    empty.innerHTML=`<b>עדיין אין נתונים לפי נושא.</b> ענו על שאלות ב"מבחן אמריקאי" או ב"סימולציות", ודרגו את עצמכם בשאלות הפתוחות — והפירוט לפי נושא יופיע כאן.`;
+    app.appendChild(empty);
+    return;
+  }
+
+  const rows = topics.map(t=>{
+    const st=topicStats[t];
+    const pct = st.answered ? Math.round((st.correct/st.answered)*100) : 0;
+    return {topic:t, answered:st.answered, pct};
+  }).sort((a,b)=>a.pct-b.pct);
+
+  const weak = rows.filter(r=>r.pct<60 && r.answered>=2).slice(0,3);
+  if(weak.length){
+    const tip=el("div","exam");
+    tip.style.marginTop="16px";
+    tip.innerHTML=`<b>🎯 נושאים לחיזוק:</b> ${weak.map(r=>`${r.topic} (${r.pct}%)`).join(" · ")} — כדאי לחזור על הפרק הרלוונטי בחומר הלימוד ולתרגל שוב.`;
+    app.appendChild(tip);
+  }
+
+  app.appendChild(el("h3",null,"פירוט לפי נושא"));
+  const wrap=el("div");
+  rows.forEach(r=>{
+    const color = r.pct>=80 ? "var(--ok)" : r.pct>=60 ? "var(--gold)" : "var(--stamp)";
+    const row=el("div","card");
+    row.style.marginBottom="8px";
+    row.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-weight:700;color:var(--navy)">${r.topic}</div>
+        <div style="font-size:.82rem;color:var(--muted)">${r.answered} שאלות שנענו/דורגו</div>
+      </div>
+      <div class="prog" style="margin:8px 0 2px"><i style="width:${r.pct}%;background:${color}"></i></div>
+      <div style="text-align:end;font-weight:800;color:${color}">${r.pct}%</div>`;
+    wrap.appendChild(row);
+  });
+  app.appendChild(wrap);
+}
+
 /* ---- init ---- */
 current = store.get("lasttab","home");
 if(!TABS.find(t=>t.id===current))current="home";
@@ -569,4 +787,5 @@ render();
 loadUserBar();
 hydrateFromServer().then(()=>{ if(current==="home")render(); });
 setupEasterEgg();
+setupTimeTracking();
 })();
