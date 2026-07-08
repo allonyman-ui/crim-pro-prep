@@ -49,11 +49,11 @@ function recordMcqAnswer(topic, isCorrect){
   stats[topic] = cur;
   store.set("topicStats",stats);
 }
-// score: 1 = ידעתי טוב, 0.5 = חלקית, 0 = לא ידעתי
-function recordOpenGrade(gradeKey, topics, score){
+// score: 1 = ידעתי טוב, 0.5 = חלקית, 0 = לא ידעתי (for mcq: 1 = נכון, 0 = טעות)
+function recordOpenGrade(gradeKey, topics, score, extra){
   const grades = store.get("openGrades",{});
   const prev = grades[gradeKey];
-  grades[gradeKey] = {score, ts: Date.now()};
+  grades[gradeKey] = Object.assign({score, ts: Date.now()}, extra||{});
   store.set("openGrades",grades);
   const stats = store.get("topicStats",{});
   (topics||["כללי"]).forEach(topic=>{
@@ -69,6 +69,23 @@ function recordOpenGrade(gradeKey, topics, score){
 function topicsFromSim(sim){
   // cap tags per question so grading one open question doesn't fan out across every topic the whole sim touches
   return (sim.topics||"").split("·").map(s=>s.trim()).filter(Boolean).slice(0,5);
+}
+// Suggested grade for one simulation from this user's own MCQ answers + self-graded open questions.
+function simProgress(sim){
+  const grades=store.get("openGrades",{});
+  const openTotal=sim.questions.length, mcqTotal=(sim.mcq||[]).length;
+  const total=openTotal+mcqTotal;
+  let answered=0, scoreSum=0;
+  for(let i=0;i<openTotal;i++){
+    const g=grades[`${sim.id}:q${i}`];
+    if(g && typeof g.score==="number"){answered++; scoreSum+=g.score;}
+  }
+  for(let i=0;i<mcqTotal;i++){
+    const g=grades[`${sim.id}:m${i}`];
+    if(g && typeof g.score==="number"){answered++; scoreSum+=g.score;}
+  }
+  const pct=answered?Math.round(scoreSum/answered*100):null;
+  return {answered, total, pct};
 }
 /* ---- Practice-time heartbeat: while the tab is visible, ping the server every 30s ---- */
 function setupTimeTracking(){
@@ -505,9 +522,15 @@ function renderSim(){
     const badge=s.real
       ? '<span class="stamp" style="margin-inline-end:8px">בחינה אמיתית</span>'
       : '<span class="stamp" style="margin-inline-end:8px;border-color:var(--gold);color:var(--gold);background:var(--gold-bg)">חדשה</span>';
+    const prog=simProgress(s);
+    const gradeColor = prog.pct==null ? "var(--muted)" : prog.pct>=80 ? "var(--ok)" : prog.pct>=60 ? "var(--gold)" : "var(--stamp)";
+    const gradeBadge = prog.answered
+      ? `<span style="font-weight:800;color:${gradeColor}">${prog.pct}%</span> <span style="color:var(--muted);font-size:.78rem">(${prog.answered}/${prog.total} נענו)</span>`
+      : `<span style="color:var(--muted);font-size:.82rem">טרם נענתה</span>`;
     card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
       <div><div class="tt" style="font-weight:800;color:var(--navy);font-size:1.1rem;font-family:'Frank Ruhl Libre',serif">${badge}${s.title}</div>
-      <div class="td" style="color:var(--muted);font-size:.86rem;margin-top:6px">${s.meta}</div></div>
+      <div class="td" style="color:var(--muted);font-size:.86rem;margin-top:6px">${s.meta}</div>
+      <div style="margin-top:6px;font-size:.9rem">${gradeBadge}</div></div>
       <button class="btn sm">פתיחה ›</button></div>`;
     card.onclick=()=>openSim(s);
     return card;
@@ -589,6 +612,7 @@ function openSim(s){
     app.appendChild(el("h3",null,`חלק ב' — שאלות אמריקאיות (${s.mcq.length})`));
     app.appendChild(el("p","lead","בבחינה האמיתית בוחרים 4 מתוך 8 — כאן מומלץ לענות על כולן לתרגול מלא."));
     const mwrap=el("div"); app.appendChild(mwrap);
+    const storedGrades=store.get("openGrades",{});
     s.mcq.forEach((qq,qi)=>{
       const c=el("div","qcard");
       let opts="";
@@ -597,22 +621,35 @@ function openSim(s){
         <div class="qtext">${qq.q}</div>${opts}
         <div class="qexplain" id="simExp${qi}"><b>הסבר:</b> ${qq.e}</div>`;
       mwrap.appendChild(c);
+      const mKey=`${s.id}:m${qi}`;
+      const prior=storedGrades[mKey];
+      if(prior!=null && prior.score!=null){
+        mcqTotal++; if(prior.score===1)mcqCorrect++;
+        c.querySelectorAll(".opt").forEach(o=>{const j=+o.dataset.oi;
+          if(j===qq.c)o.classList.add("correct");
+          if(j===prior.chosenIndex && j!==qq.c)o.classList.add("wrong");});
+        c.querySelector("#simExp"+qi)?.classList.add("show");
+      }
     });
+    updSimScore();
     mwrap.querySelectorAll(".opt").forEach(opt=>{
       opt.onclick=()=>{
         const qi=+opt.dataset.qi, oi=+opt.dataset.oi;
         const opts=mwrap.querySelectorAll(`.opt[data-qi="${qi}"]`);
         if([...opts].some(o=>o.classList.contains("correct")||o.classList.contains("wrong")))return;
         const qq=s.mcq[qi];
+        const isCorrect=oi===qq.c;
         opts.forEach(o=>{const j=+o.dataset.oi;
           if(j===qq.c)o.classList.add("correct");
-          if(j===oi&&oi!==qq.c)o.classList.add("wrong");});
+          if(j===oi&&!isCorrect)o.classList.add("wrong");});
         $("#simExp"+qi).classList.add("show");
         const st=store.get("quizStats",{answered:0,correct:0});
-        st.answered++; if(oi===qq.c)st.correct++;
+        st.answered++; if(isCorrect)st.correct++;
         store.set("quizStats",st);
-        recordMcqAnswer(qq.topic||simTopics[0], oi===qq.c);
-        mcqTotal++; if(oi===qq.c)mcqCorrect++;
+        const mKey=`${s.id}:m${qi}`;
+        const alreadyCounted=(store.get("openGrades",{}))[mKey]!=null;
+        recordOpenGrade(mKey, [qq.topic||simTopics[0]], isCorrect?1:0, {chosenIndex:oi});
+        if(!alreadyCounted){ mcqTotal++; if(isCorrect)mcqCorrect++; }
         updSimScore();
       };
     });
@@ -717,6 +754,9 @@ function renderLeaderboard(){
           <div style="font-size:.82rem;color:var(--muted);margin-top:2px">
             ${u.quizAnswered} שאלות (${u.quizAccuracy}% דיוק) · ${u.cardsSeenCount} כרטיסיות · ${u.chaptersOpenedCount} פרקים · ${fmtDuration(u.timeSpentSec)} תרגול${u.streak?` · רצף ${u.streak} ימים 🔥`:''}
           </div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:2px">
+            📝 ${u.simsAttempted}/${u.simsTotal} סימולציות${u.avgSimGrade!=null?` · ציון ממוצע ${u.avgSimGrade}%`:''}
+          </div>
           <div style="margin-top:6px">${badges}</div>
         </div>
         <div style="text-align:center;min-width:70px">
@@ -747,6 +787,32 @@ function renderPerformance(){
     <div class="stat"><div class="n">${quizStats.answered?Math.round(quizStats.correct/quizStats.answered*100)+'%':'—'}</div><div class="l">דיוק בשאלות אמריקאיות</div></div>
     <div class="stat"><div class="n">${openAnswered?Math.round(openAvg*100)+'%':'—'}</div><div class="l">ציון עצמי בשאלות פתוחות (${openAnswered} דורגו)</div></div>`;
   app.appendChild(summary);
+
+  const simRows = DATA.sims.map(s=>Object.assign({id:s.id,title:s.title},simProgress(s)));
+  const attemptedSims = simRows.filter(r=>r.answered>0);
+  app.appendChild(el("h3",null,`ציון מוצע לפי סימולציה (${attemptedSims.length}/${simRows.length} נענו)`));
+  app.appendChild(el("p","lead","הציון המוצע משלב את התשובות שלכם בשאלות האמריקאיות עם הדירוג העצמי שנתתם לשאלות הפתוחות בכל סימולציה."));
+  if(!attemptedSims.length){
+    const empty=el("div","note");
+    empty.innerHTML=`עדיין לא ענית או דירגת אף שאלה בסימולציות. פתחו סימולציה בטאב "סימולציות" כדי להתחיל.`;
+    app.appendChild(empty);
+  }else{
+    const simWrap=el("div");
+    attemptedSims.sort((a,b)=>(a.pct??0)-(b.pct??0)).forEach(r=>{
+      const color = r.pct>=80 ? "var(--ok)" : r.pct>=60 ? "var(--gold)" : "var(--stamp)";
+      const row=el("div","card");
+      row.style.marginBottom="8px";
+      row.innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-weight:700;color:var(--navy)">${r.title}</div>
+          <div style="font-size:.82rem;color:var(--muted)">${r.answered}/${r.total} שאלות נענו</div>
+        </div>
+        <div class="prog" style="margin:8px 0 2px"><i style="width:${r.pct}%;background:${color}"></i></div>
+        <div style="text-align:end;font-weight:800;color:${color}">${r.pct}%</div>`;
+      simWrap.appendChild(row);
+    });
+    app.appendChild(simWrap);
+  }
 
   const topics = Object.keys(topicStats);
   if(!topics.length){

@@ -97,7 +97,7 @@ tr:nth-child(even) td{background:#f7f9fc}
     <table>
       <thead><tr>
         <th>שם</th><th>אימייל</th><th>הצטרפ/ה</th><th>נראה לאחרונה</th>
-        <th>התקדמות</th><th>כרטיסיות</th><th>שאלות (דיוק)</th><th>זמן תרגול</th><th>הרשאה</th><th></th>
+        <th>התקדמות</th><th>כרטיסיות</th><th>שאלות (דיוק)</th><th>זמן תרגול</th><th>סימולציות (ציון)</th><th>הרשאה</th><th></th>
       </tr></thead>
       <tbody id="usersBody"></tbody>
     </table>
@@ -134,6 +134,7 @@ async function loadUsers(){
       <td>${u.cardsSeenCount}</td>
       <td>${u.quizAnswered} (${u.quizAccuracy}%)</td>
       <td class="muted">${fmtDuration(u.timeSpentSec)}</td>
+      <td>${u.simsAttempted}/${u.simsTotal}${u.avgSimGrade!=null?` (${u.avgSimGrade}%)`:''}</td>
       <td>${u.isAdmin ? '<span class="pill admin">מנהל</span>' : '<span class="pill">משתמש</span>'}</td>
       <td>
         <button class="btn sm" data-toggle-admin="${u.id}" data-is-admin="${u.isAdmin?1:0}">${u.isAdmin?'הסרת ניהול':'הפיכה למנהל'}</button>

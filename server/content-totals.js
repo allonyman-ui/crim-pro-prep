@@ -7,8 +7,17 @@ const sandbox = { DATA: {} };
 vm.createContext(sandbox);
 vm.runInContext(src, sandbox);
 
+const SIM_META = (sandbox.DATA.sims || []).map((s) => ({
+  id: s.id,
+  title: s.title,
+  real: !!s.real,
+  openCount: (s.questions || []).length,
+  mcqCount: (s.mcq || []).length,
+}));
+
 module.exports = {
   TOTAL_FLASHCARDS: (sandbox.DATA.flashcards || []).length,
   TOTAL_MCQ: (sandbox.DATA.mcq || []).length,
   TOTAL_CHAPTERS: (sandbox.DATA.chapters || []).length,
+  SIM_META,
 };

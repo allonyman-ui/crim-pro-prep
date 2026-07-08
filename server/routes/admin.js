@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("node:crypto");
 const db = require("../db");
 const { TOTAL_FLASHCARDS, TOTAL_MCQ } = require("../content-totals");
+const { computeSimGrades } = require("../sim-grades");
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.get("/users", (req, res) => {
   const rows = db
     .prepare(
       `SELECT u.id, u.first_name, u.last_name, u.email, u.is_admin, u.created_at, u.last_seen_at,
-              p.cards_seen, p.quiz_stats, p.chapters_opened, p.time_spent_sec, p.updated_at AS progress_updated_at
+              p.cards_seen, p.quiz_stats, p.chapters_opened, p.time_spent_sec, p.open_grades, p.updated_at AS progress_updated_at
        FROM users u LEFT JOIN progress p ON p.user_id = u.id
        ORDER BY u.created_at DESC`
     )
@@ -43,9 +44,11 @@ router.get("/users", (req, res) => {
     const cardsSeen = JSON.parse(r.cards_seen || "[]");
     const quizStats = JSON.parse(r.quiz_stats || '{"answered":0,"correct":0}');
     const chaptersOpened = JSON.parse(r.chapters_opened || "[]");
+    const openGrades = JSON.parse(r.open_grades || "{}");
     const flashcardRatio = TOTAL_FLASHCARDS ? cardsSeen.length / TOTAL_FLASHCARDS : 0;
     const quizRatio = TOTAL_MCQ ? quizStats.answered / TOTAL_MCQ : 0;
     const progressPct = Math.round(((flashcardRatio + quizRatio) / 2) * 100);
+    const simGrades = computeSimGrades(openGrades);
     return {
       id: r.id,
       firstName: r.first_name,
@@ -60,6 +63,9 @@ router.get("/users", (req, res) => {
       quizCorrect: quizStats.correct,
       quizAccuracy: quizStats.answered ? Math.round((quizStats.correct / quizStats.answered) * 100) : 0,
       timeSpentSec: r.time_spent_sec || 0,
+      simsAttempted: simGrades.simsAttempted,
+      simsTotal: simGrades.simsTotal,
+      avgSimGrade: simGrades.avgSimGrade,
       progressPct: Math.min(100, progressPct),
     };
   });

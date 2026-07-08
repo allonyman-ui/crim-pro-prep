@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { TOTAL_FLASHCARDS, TOTAL_MCQ, TOTAL_CHAPTERS } = require("../content-totals");
+const { computeSimGrades } = require("../sim-grades");
 
 const router = express.Router();
 
@@ -52,6 +53,7 @@ router.get("/me", (req, res) => {
   const lastTab = row ? row.last_tab : null;
   const timeSpentSec = row ? row.time_spent_sec || 0 : 0;
   const streak = computeStreak(req.user.id);
+  const simGrades = computeSimGrades(openGrades);
   res.json({
     cardsSeen,
     quizStats,
@@ -63,6 +65,10 @@ router.get("/me", (req, res) => {
     timeSpentSec,
     progressPct: progressPct(cardsSeen, quizStats),
     achievements: achievementsFor({ cardsSeen, quizStats, chaptersOpened, streak, timeSpentSec }),
+    simGrades: simGrades.perSim,
+    simsAttempted: simGrades.simsAttempted,
+    simsTotal: simGrades.simsTotal,
+    avgSimGrade: simGrades.avgSimGrade,
   });
 });
 
@@ -123,7 +129,7 @@ router.post("/me", (req, res) => {
 router.get("/leaderboard", (req, res) => {
   const rows = db
     .prepare(
-      `SELECT u.id, u.first_name, p.cards_seen, p.quiz_stats, p.chapters_opened, p.time_spent_sec
+      `SELECT u.id, u.first_name, p.cards_seen, p.quiz_stats, p.chapters_opened, p.time_spent_sec, p.open_grades
        FROM users u LEFT JOIN progress p ON p.user_id = u.id`
     )
     .all();
@@ -132,7 +138,9 @@ router.get("/leaderboard", (req, res) => {
     const cardsSeen = JSON.parse(r.cards_seen || "[]");
     const quizStats = JSON.parse(r.quiz_stats || '{"answered":0,"correct":0}');
     const chaptersOpened = JSON.parse(r.chapters_opened || "[]");
+    const openGrades = JSON.parse(r.open_grades || "{}");
     const streak = computeStreak(r.id);
+    const simGrades = computeSimGrades(openGrades);
     return {
       firstName: r.first_name,
       progressPct: progressPct(cardsSeen, quizStats),
@@ -143,6 +151,9 @@ router.get("/leaderboard", (req, res) => {
       chaptersOpenedCount: chaptersOpened.length,
       timeSpentSec: r.time_spent_sec || 0,
       streak,
+      simsAttempted: simGrades.simsAttempted,
+      simsTotal: simGrades.simsTotal,
+      avgSimGrade: simGrades.avgSimGrade,
       achievements: achievementsFor({ cardsSeen, quizStats, chaptersOpened, streak, timeSpentSec: r.time_spent_sec || 0 }),
       isMe: r.id === req.user.id,
     };
