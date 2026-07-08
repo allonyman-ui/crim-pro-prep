@@ -4,13 +4,13 @@ function requireAuth(req, res, next) {
   const uid = req.session && req.session.userId;
   if (!uid) {
     if (req.path.startsWith("/api/")) return res.status(401).json({ error: "not_authenticated" });
-    return res.redirect("/login.html");
+    return res.redirect("/register.html");
   }
   const user = db.prepare("SELECT id, first_name, last_name, email, is_admin FROM users WHERE id = ?").get(uid);
   if (!user) {
     req.session = null;
     if (req.path.startsWith("/api/")) return res.status(401).json({ error: "not_authenticated" });
-    return res.redirect("/login.html");
+    return res.redirect("/register.html");
   }
   req.user = user;
   db.prepare("UPDATE users SET last_seen_at = datetime('now') WHERE id = ?").run(uid);

@@ -33,6 +33,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .err{background:#fbe9e8;border:1px solid var(--stamp);color:var(--stamp);border-radius:10px;padding:10px 14px;font-size:.88rem;margin-top:14px;display:none}
 .err.show{display:block}
 .note{background:var(--gold-bg);border:1px solid var(--goldln);border-radius:10px;padding:12px 15px;font-size:.85rem;margin-bottom:8px}
+.foot{text-align:center;color:var(--muted);font-size:.78rem;margin-top:18px}
 </style>
 </head>
 <body>
@@ -59,6 +60,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
     <div class="err" id="err"></div>
     <button type="submit" id="submitBtn">יצירת חשבון והתחברות</button>
   </form>
+  <div class="foot">כבר יש לך חשבון? <a href="/login.html" style="color:var(--blue);font-weight:700;text-decoration:none">התחברות</a><br>© אסף אלוני · כל הזכויות שמורות</div>
 </div>
 <script>
 const form = document.getElementById("regForm");
