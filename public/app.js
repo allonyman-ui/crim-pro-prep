@@ -477,11 +477,12 @@ function renderQuiz(){
     $("#qScore").textContent=`${correct} / ${total} נכונות`;
     $("#qProg").style.width=(total?correct/DATA.mcq.length*100:0)+"%";
   }
-  DATA.mcq.forEach((qq,qi)=>{
+  shuffleIdx(DATA.mcq.length).forEach((qi,pos)=>{
+    const qq=DATA.mcq[qi];
     const c=el("div","qcard");
     let opts="";
-    shuffleIdx(qq.o.length).forEach((oi,pos)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][pos]}.</span>${qq.o[oi]}</label>`;});
-    c.innerHTML=`<span class="qnum">שאלה ${qi+1}</span><span class="qsrc">${qq.src} · ${qq.topic}</span>
+    shuffleIdx(qq.o.length).forEach((oi,opos)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][opos]}.</span>${qq.o[oi]}</label>`;});
+    c.innerHTML=`<span class="qnum">שאלה ${pos+1}</span><span class="qsrc">${qq.src} · ${qq.topic}</span>
       <div class="qtext">${qq.q}</div>${opts}
       <div class="qexplain" id="exp${qi}"><b>הסבר:</b> ${qq.e}</div>`;
     wrap.appendChild(c);
@@ -613,11 +614,12 @@ function openSim(s){
     app.appendChild(el("p","lead","בבחינה האמיתית בוחרים 4 מתוך 8 — כאן מומלץ לענות על כולן לתרגול מלא."));
     const mwrap=el("div"); app.appendChild(mwrap);
     const storedGrades=store.get("openGrades",{});
-    s.mcq.forEach((qq,qi)=>{
+    shuffleIdx(s.mcq.length).forEach((qi,pos)=>{
+      const qq=s.mcq[qi];
       const c=el("div","qcard");
       let opts="";
-      shuffleIdx(qq.o.length).forEach((oi,pos)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][pos]}.</span>${qq.o[oi]}</label>`;});
-      c.innerHTML=`<span class="qnum">שאלה ${qi+1}</span>${qq.topic?`<span class="qsrc">${qq.topic}</span>`:""}
+      shuffleIdx(qq.o.length).forEach((oi,opos)=>{opts+=`<label class="opt" data-qi="${qi}" data-oi="${oi}"><span class="mk">${["א","ב","ג","ד"][opos]}.</span>${qq.o[oi]}</label>`;});
+      c.innerHTML=`<span class="qnum">שאלה ${pos+1}</span>${qq.topic?`<span class="qsrc">${qq.topic}</span>`:""}
         <div class="qtext">${qq.q}</div>${opts}
         <div class="qexplain" id="simExp${qi}"><b>הסבר:</b> ${qq.e}</div>`;
       mwrap.appendChild(c);
