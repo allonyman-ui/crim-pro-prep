@@ -5,7 +5,15 @@ const fs = require("node:fs");
 const dataDir = process.env.DATA_DIR || path.join(__dirname, "..", "data");
 fs.mkdirSync(dataDir, { recursive: true });
 
-const db = new DatabaseSync(path.join(dataDir, "app.db"));
+const dbPath = path.join(dataDir, "app.db");
+const dbFileExistedBefore = fs.existsSync(dbPath);
+console.log(
+  `[db] DATA_DIR=${dataDir} dbPath=${dbPath} preExisting=${dbFileExistedBefore}${
+    dbFileExistedBefore ? ` size=${fs.statSync(dbPath).size}B` : ""
+  }`
+);
+
+const db = new DatabaseSync(dbPath);
 db.exec("PRAGMA journal_mode = WAL;");
 db.exec("PRAGMA foreign_keys = ON;");
 
@@ -75,6 +83,13 @@ for (const stmt of [
   } catch (e) {
     /* column already exists */
   }
+}
+
+try {
+  const { count } = db.prepare("SELECT COUNT(*) AS count FROM users").get();
+  console.log(`[db] users table has ${count} row(s) at startup`);
+} catch (e) {
+  console.error("[db] failed to count users at startup:", e.message);
 }
 
 module.exports = db;
